@@ -10,7 +10,7 @@ export function GpsComponent() {
                                        value={gps.Pose?.Pose?.Position?.Y}/></Col>
         <Col lg={8} xs={24}><Statistic precision={2} title="Altitude" value={gps.Pose?.Pose?.Position?.Z}/></Col>
         <Col lg={8} xs={24}><Statistic precision={2} title="Orientation"
-                                       value={gps.Pose?.Pose?.Orientation?.Z}/></Col>
+                                       value={gps.MotionHeading}/></Col>
         <Col lg={8} xs={24}><Statistic precision={3} title="Accuracy" value={gps.PositionAccuracy}/></Col>
     </Row>;
 }
