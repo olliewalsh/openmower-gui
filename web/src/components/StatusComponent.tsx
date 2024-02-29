@@ -1,6 +1,6 @@
 import {ESCStatus} from "../types/ros.ts";
 import {Card, Col, Row, Statistic} from "antd";
-import {booleanFormatter} from "./utils.tsx";
+import {statFormatter, booleanFormatter} from "./utils.tsx";
 import {useStatus} from "../hooks/useStatus.ts";
 
 export function StatusComponent() {
@@ -26,9 +26,9 @@ export function StatusComponent() {
                     <Col lg={6} xs={12}><Statistic title="Raspberry Pi power"
                                                    value={status.RaspberryPiPower ? "On" : "Off"}
                                                    formatter={booleanFormatter}/></Col>
-                    <Col lg={6} xs={12}><Statistic title="GPS power" value={status.GpsPower ? "On" : "Off"}
+                    <Col lg={6} xs={12}><Statistic title="Charging" value={status.GpsPower ? "On" : "Off"}
                                                    formatter={booleanFormatter}/></Col>
-                    <Col lg={6} xs={12}><Statistic title="ESC power" value={status.EscPower ? "On" : "Off"}
+                    <Col lg={6} xs={12}><Statistic title="ESC Power" value={status.EscPower ? "On" : "Off"}
                                                    formatter={booleanFormatter}/></Col>
                     <Col lg={6} xs={12}><Statistic title="Rain detected" value={status.RainDetected ? "Yes" : "No"}
                                                    formatter={booleanFormatter}/></Col>
@@ -45,9 +45,9 @@ export function StatusComponent() {
                                                    formatter={booleanFormatter}/></Col>
                     <Col lg={6} xs={24}><Statistic title="Ultrasonic ranges"
                                                    value={status.UltrasonicRanges?.join(", ")}/></Col>
-                    <Col lg={6} xs={24}><Statistic title="Voltage charge" value={status.VCharge} suffix={"V"}/></Col>
-                    <Col lg={6} xs={24}><Statistic title="Voltage battery" value={status.VBattery} suffix={"V"}/></Col>
-                    <Col lg={6} xs={24}><Statistic title="Charge current" value={status.ChargeCurrent}
+                    <Col lg={6} xs={24}><Statistic title="Voltage charge" value={statFormatter(status.VCharge)} suffix={"V"}/></Col>
+                    <Col lg={6} xs={24}><Statistic title="Voltage battery" value={statFormatter(status.VBattery)} suffix={"V"}/></Col>
+                    <Col lg={6} xs={24}><Statistic title="Charge current" value={statFormatter(status.ChargeCurrent)}
                                                    suffix={"A"}/></Col>
                 </Row>
             </Card>
