@@ -39,7 +39,7 @@ export function HighLevelStatusComponent() {
                                        formatter={progressFormatter}/></Col>
         <Col lg={6} xs={12}><Statistic.Countdown title="Charging time left" format={"HH:mm"}
                                        value={highLevelStatus.IsCharging ? estimateRemainingChargingTime() : "-"}/></Col>
-        <Col lg={6} xs={12}><Statistic title="Charging" value={highLevelStatus.IsCharging ? "Yes" : "No"}
+        <Col lg={6} xs={12}><Statistic title="Docked" value={highLevelStatus.IsCharging ? "Yes" : "No"}
                                        formatter={booleanFormatter}/></Col>
         <Col lg={6} xs={12}><Statistic title="Emergency" value={highLevelStatus.Emergency ? "Yes" : "No"}
                                        formatter={booleanFormatterInverted}/></Col>
