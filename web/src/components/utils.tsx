@@ -30,3 +30,7 @@ export const progressFormatter = (value: any) => {
 export const progressFormatterSmall = (value: any) => {
     return <Progress steps={3} percent={value} size={11} showInfo={false}/>
 };
+
+export const statFormatter = (value: any ) => {
+    return Intl.NumberFormat("en", {signDisplay: "always", minimumFractionDigits: 9, maximumFractionDigits: 9}).format(value)
+}

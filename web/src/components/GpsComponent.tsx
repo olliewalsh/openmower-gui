@@ -13,7 +13,8 @@ export function GpsComponent() {
     } else if ((flags & Flags.FLOAT) != 0) {
         fixType = "FLOAT";
     }
-
+    // Convert from +/- anti-clockwise radians from E to positive clockwise degrees from N
+    const heading = gps.MotionHeading === undefined ? 0.0 : (450 -(gps.MotionHeading * 180.0/Math.PI)) % 360;
     return <>
         <Row gutter={[16, 16]}>
             <Col lg={8} xs={24}><Statistic precision={9} title="Position X"
@@ -22,7 +23,7 @@ export function GpsComponent() {
                                         value={gps.Pose?.Pose?.Position?.Y}/></Col>
             <Col lg={8} xs={24}><Statistic precision={2} title="Altitude" value={gps.Pose?.Pose?.Position?.Z}/></Col>
             <Col lg={8} xs={24}><Statistic precision={2} title="Orientation"
-                                        value={gps.MotionHeading}/></Col>
+                                        value={heading}/></Col>
             <Col lg={8} xs={24}><Statistic precision={3} title="Accuracy" value={gps.PositionAccuracy}/></Col>
             </Row>
         <Row gutter={[16, 16]}>

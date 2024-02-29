@@ -6,8 +6,17 @@ import {progressFormatterSmall, stateRenderer} from "./utils.tsx";
 export const MowerStatus = () => {
     const {highLevelStatus} = useHighLevelStatus();
     return <Row gutter={[16, 16]} style={{margin: 0}}>
-        <Col><Statistic valueStyle={{color: "#3f8600", fontSize: "14px"}}
-                        value={stateRenderer(highLevelStatus.StateName)}/></Col>
+        <Col><Statistic
+            valueStyle={{
+                color: "#3f8600",
+                fontSize: "14px",
+                WebkitUserSelect: "none",
+                MozUserSelect: "none",
+                msUserSelect: "none",
+                userSelect:"none"
+            }}
+            value={stateRenderer(highLevelStatus.StateName)}
+        /></Col>
         <Col><Statistic
             prefix={<WifiOutlined style={{color: (highLevelStatus.GpsQualityPercent ?? 0) > 0 ? "green" : "red"}}
             />}
