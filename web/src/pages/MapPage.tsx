@@ -308,7 +308,7 @@ export const MapPage = () => {
         }
         if (path) {
             Object.values<Marker>(path.Markers).filter((f) => {
-                return f.Type == 4 && f.Action == 0
+                return f.Type == 4 && f.Action == 0 && f.Points.length > 0
             }).forEach((marker, index) => {
                 const line: Position[] = marker.Points.map(point => {
                     return transpose(offsetX, offsetY, datum, point.Y!!, point.X!!)
