@@ -976,7 +976,7 @@ export const MapPage = () => {
                 >
                     {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
                     {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}
-                    <Source type={"geojson"} id={"labels"} data={labelsCollection}/>
+                    <Source type={"geojson"} id={"labels"} data={labelsCollection} tolerance={3.5}/>
                     <Layer type={"symbol"} id={"mower"} source={"labels"} layout={{
                         "text-field": ['get', 'title'], //This will get "t" property from your geojson
                         "text-rotation-alignment": "auto",
