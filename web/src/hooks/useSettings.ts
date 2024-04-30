@@ -322,6 +322,13 @@ export const SettingsDesc: Record<string, Setting> = {
         section: "API",
         type: SettingValueType.String, defaultValue: "/app/web", description: "API web directory"
     },
+    "system.map.apiKey": {
+        settingType: SettingType.Db,
+        section: "Map",
+        type: SettingValueType.String,
+        defaultValue: "",
+        description: "MapTiler API Key",
+    },
     "system.map.enabled": {
         settingType: SettingType.Db,
         section: "Map",
