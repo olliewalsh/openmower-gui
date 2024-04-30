@@ -132,10 +132,17 @@ func NewRosProvider(dbProvider types2.IDBProvider) types2.IRosProvider {
 		logrus.Error(err)
 		return r
 	}
-	err = r.initMowingPathSubscriber()
+	pubMowingPath, err := dbProvider.Get("system.ros.pubMowingPath")
 	if err != nil {
 		logrus.Error(err)
 		return r
+	}
+	if string(pubMowingPath) == "true" {
+		err = r.initMowingPathSubscriber()
+		if err != nil {
+			logrus.Error(err)
+			return r
+		}
 	}
 	go func() {
 		for range time.Tick(20 * time.Second) {
