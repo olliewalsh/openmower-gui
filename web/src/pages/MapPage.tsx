@@ -1,4 +1,4 @@
-import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import 'maplibre-gl/dist/maplibre-gl.css';
 import {useApi} from "../hooks/useApi.ts";
 import {App, Button, Col, Modal, Row, Slider, Typography} from "antd";
 import {useWS} from "../hooks/useWS.ts";
@@ -7,7 +7,7 @@ import centroid from "@turf/centroid";
 import {ChangeEvent, useCallback, useEffect, useMemo, useState} from "react";
 import {AbsolutePose, Map as MapType, MapArea, Marker, MarkerArray, Path, Twist} from "../types/ros.ts";
 import DrawControl from "../components/DrawControl.tsx";
-import Map, {Layer, Source} from 'react-map-gl';
+import Map, {Layer, Source} from 'react-map-gl/maplibre';
 import type {Feature} from 'geojson';
 import {FeatureCollection, LineString, Polygon, Position} from "geojson";
 import {MowerActions, useMowerAction} from "../components/MowerActions.tsx";
@@ -888,15 +888,11 @@ export const MapPage = () => {
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
                                                          reuseMaps
                                                          antialias
-                                                         projection={{
-                                                             name: "globe"
-                                                         }}
-                                                         mapboxAccessToken="pk.eyJ1IjoiY2VkYm9zc25lbyIsImEiOiJjbGxldjB4aDEwOW5vM3BxamkxeWRwb2VoIn0.WOccbQZZyO1qfAgNxnHAnA"
                                                          initialViewState={{
                                                              bounds: [{lng: map_sw[0], lat: map_sw[1]}, {lng: map_ne[0], lat: map_ne[1]}],
                                                          }}
                                                          style={{width: '100%', height: '100%'}}
-                                                         mapStyle={"mapbox://styles/mapbox/satellite-streets-v12"}
+                                                         mapStyle={"https://api.maptiler.com/maps/satellite/style.json?key=" + settings["system.map.apiKey"]}
                 >
                     {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
                     {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}
