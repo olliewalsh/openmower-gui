@@ -171,6 +171,7 @@ export type Status = {
 export type ESCStatus = {
     Status?: string
     Current?: number
+    Voltage?: number
     Tacho?: number
     TemperatureMotor?: number
     TemperaturePcb?: number
