@@ -3,9 +3,9 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Clone the repository https://github.com/ClemensElflein/open_mower_ros in a temporary directory
 OM_DIR=/tmp/open_mower_ros
 DYN_DIR=/tmp/dynamic_reconfigure
-git clone https://github.com/ClemensElflein/open_mower_ros $OM_DIR
+git clone https://github.com/olliewalsh/open_mower_ros $OM_DIR
 git clone https://github.com/ros/dynamic_reconfigure $DYN_DIR
-cd $OM_DIR && git submodule update --init --recursive
+cd $OM_DIR && git checkout origin/releases/ow_testing && git submodule update --init --recursive
 cd $SCRIPT_DIR
 # Use msg-import to import the messages from the temporary directory
 declare -a PACKAGES_NAME

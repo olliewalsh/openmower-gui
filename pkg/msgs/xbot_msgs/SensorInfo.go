@@ -3,8 +3,9 @@
 package xbot_msgs
 
 import (
-	"github.com/bluenviron/goroslib/v2/pkg/msg"
+    "github.com/bluenviron/goroslib/v2/pkg/msg"
 )
+
 
 const (
 	SensorInfo_TYPE_STRING                             uint8  = 1
@@ -41,3 +42,4 @@ type SensorInfo struct {
 	HasCriticalHigh    bool
 	UpperCriticalValue float64
 }
+
