@@ -7,20 +7,19 @@ import (
 )
 
 
-type GetMowingAreaSrvReq struct {
+type HasDockingPointSrvReq struct {
     msg.Package `ros:"mower_map"`
-    Index uint32
 }
 
 
 
-type GetMowingAreaSrvRes struct {
+type HasDockingPointSrvRes struct {
     msg.Package `ros:"mower_map"`
-    Area MapArea
+    HasDockingPoint bool
 }
 
-type GetMowingAreaSrv struct {
+type HasDockingPointSrv struct {
     msg.Package `ros:"mower_map"`
-    GetMowingAreaSrvReq
-    GetMowingAreaSrvRes
+    HasDockingPointSrvReq
+    HasDockingPointSrvRes
 }

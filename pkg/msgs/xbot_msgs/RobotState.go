@@ -3,17 +3,19 @@
 package xbot_msgs
 
 import (
-	"github.com/bluenviron/goroslib/v2/pkg/msg"
+    "github.com/bluenviron/goroslib/v2/pkg/msg"
 )
 
+
 type RobotState struct {
-	msg.Package           `ros:"xbot_msgs"`
-	BatteryPercentage     float32
-	Emergency             bool
-	IsCharging            bool
-	GpsPercentage         float32
-	CurrentActionProgress float32
-	CurrentState          string
-	CurrentSubState       string
-	RobotPose             AbsolutePose
+    msg.Package `ros:"xbot_msgs"`
+    BatteryPercentage float32
+    Emergency bool
+    IsCharging bool
+    GpsPercentage float32
+    CurrentActionProgress float32
+    CurrentState string
+    CurrentSubState string
+    RobotPose AbsolutePose
 }
+

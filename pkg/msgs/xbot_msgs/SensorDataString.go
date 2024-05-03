@@ -3,12 +3,14 @@
 package xbot_msgs
 
 import (
-	"github.com/bluenviron/goroslib/v2/pkg/msg"
-	"time"
+    "github.com/bluenviron/goroslib/v2/pkg/msg"
+    "time"
 )
 
+
 type SensorDataString struct {
-	msg.Package `ros:"xbot_msgs"`
-	Stamp       time.Time
-	Data        string
+    msg.Package `ros:"xbot_msgs"`
+    Stamp time.Time
+    Data string
 }
+
