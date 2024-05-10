@@ -24,5 +24,7 @@ type ESCStatus struct {
     Tacho uint32
     TemperatureMotor float32
     TemperaturePcb float32
+    TargetSpeed float32
+    Speed float32
 }
 
