@@ -26,5 +26,6 @@ type ESCStatus struct {
     TemperaturePcb float32
     TargetSpeed float32
     Speed float32
+    DutyCycle float32
 }
 
