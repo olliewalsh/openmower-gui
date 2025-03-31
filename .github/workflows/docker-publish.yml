@@ -10,7 +10,7 @@ on:
   #  - cron:  '30,0 * * * *'
   workflow_dispatch:
   push:
-    branches: [ "master", "test", "rebase" ]
+    branches: [ "master", "test", "rebase", "rebase3" ]
   pull_request:
     branches:
       - 'master'
@@ -28,10 +28,17 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        docker_build_arch: [ linux/arm64 , linux/amd64 ]
+        arch: [ linux/arm64 , linux/amd64 ]
+        include:
+          - arch: linux/arm64
+            builder: ubuntu-24.04-arm
+          - arch: linux/amd64
+            builder: ubuntu-24.04
+    name: Build - ${{matrix.arch}}
+    runs-on: ${{matrix.builder}}
     permissions:
       contents: read
       packages: write
@@ -50,7 +57,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
@@ -69,7 +76,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v4
         with:
-          platforms: ${{ matrix.docker_build_arch }}
+          platforms: ${{ matrix.arch }}
           context: .
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
@@ -81,9 +88,9 @@ jobs:
           digest="${{ steps.build-and-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
       - name: Upload digest
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: digests
+          name: digests-${{ matrix.builder }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -93,10 +100,11 @@ jobs:
       - build
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: digests
+          pattern: digests-*
           path: /tmp/digests
+          merge-multiple: true
       - name: Set up QEMU (arm64)
         if: runner.arch != 'arm64'
         uses: docker/setup-qemu-action@v2
