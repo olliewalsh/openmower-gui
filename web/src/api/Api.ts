@@ -592,6 +592,56 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
               format: "json",
               ...params,
           }),
+
+      /**
+       * @description returns the JSON Schema for mower configuration parameters
+       *
+       * @tags settings
+       * @name SettingsSchemaList
+       * @summary returns the mower config JSON Schema
+       * @request GET:/settings/schema
+       */
+      settingsSchemaList: (params: RequestParams = {}) =>
+          this.request<Record<string, any>, ApiErrorResponse>({
+              path: `/settings/schema`,
+              method: "GET",
+              format: "json",
+              ...params,
+          }),
+
+      /**
+       * @description returns the current YAML mower configuration values
+       *
+       * @tags settings
+       * @name SettingsYamlList
+       * @summary returns the current YAML mower configuration
+       * @request GET:/settings/yaml
+       */
+      settingsYamlList: (params: RequestParams = {}) =>
+          this.request<Record<string, any>, ApiErrorResponse>({
+              path: `/settings/yaml`,
+              method: "GET",
+              format: "json",
+              ...params,
+          }),
+
+      /**
+       * @description saves the mower configuration as YAML
+       *
+       * @tags settings
+       * @name SettingsYamlCreate
+       * @summary saves the mower configuration as YAML
+       * @request POST:/settings/yaml
+       */
+      settingsYamlCreate: (settings: Record<string, any>, params: RequestParams = {}) =>
+          this.request<ApiOkResponse, ApiErrorResponse>({
+              path: `/settings/yaml`,
+              method: "POST",
+              body: settings,
+              type: ContentType.Json,
+              format: "json",
+              ...params,
+          }),
   };
     setup = {
         /**

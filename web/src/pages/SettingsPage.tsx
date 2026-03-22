@@ -1,24 +1,95 @@
-import {Col, Row, Typography} from "antd";
-import {SettingsComponent} from "../components/SettingsComponent.tsx";
-import {Submit} from "@formily/antd-v5";
+import { Col, Row, Tabs, Typography } from "antd";
+import { SettingsComponent } from "../components/SettingsComponent.tsx";
+import { SchemaSettingsComponent } from "../components/SchemaSettingsComponent.tsx";
+import { Submit } from "@formily/antd-v5";
 import AsyncButton from "../components/AsyncButton.tsx";
+import { useApi } from "../hooks/useApi.ts";
+import { App } from "antd";
 
 export const SettingsPage = () => {
-    return (<Row>
+    const guiApi = useApi();
+    const { notification } = App.useApp();
+
+    const restartOpenMower = async () => {
+        try {
+            const resContainersList = await guiApi.containers.containersList();
+            if (resContainersList.error) throw new Error(resContainersList.error.error);
+            const container = resContainersList.data.containers?.find(
+                (c) => c.labels?.app === "openmower" || c.names?.includes("/openmower")
+            );
+            if (container?.id) {
+                const res = await guiApi.containers.containersCreate(container.id, "restart");
+                if (res.error) throw new Error(res.error.error);
+                notification.success({ message: "OpenMower restarted" });
+            } else {
+                throw new Error("OpenMower container not found");
+            }
+        } catch (e: any) {
+            notification.error({ message: "Failed to restart OpenMower", description: e.message });
+        }
+    };
+
+    const restartGui = async () => {
+        try {
+            const resContainersList = await guiApi.containers.containersList();
+            if (resContainersList.error) throw new Error(resContainersList.error.error);
+            const container = resContainersList.data.containers?.find(
+                (c) => c.labels?.app === "gui" || c.names?.includes("/openmower-gui")
+            );
+            if (container?.id) {
+                const res = await guiApi.containers.containersCreate(container.id, "restart");
+                if (res.error) throw new Error(res.error.error);
+                notification.success({ message: "GUI restarted" });
+            } else {
+                throw new Error("GUI container not found");
+            }
+        } catch (e: any) {
+            notification.error({ message: "Failed to restart GUI", description: e.message });
+        }
+    };
+
+    const items = [
+        {
+            key: "mower",
+            label: "Mower Configuration",
+            children: (
+                <SchemaSettingsComponent
+                    onRestartOM={restartOpenMower}
+                    onRestartGUI={restartGui}
+                />
+            ),
+        },
+        {
+            key: "system",
+            label: "System Settings",
+            children: (
+                <SettingsComponent
+                    actions={(form, save, restartOM, restartGUI) => [
+                        <Submit key="save" loading={form.loading} onSubmit={save}>
+                            Save settings
+                        </Submit>,
+                        <AsyncButton key="restart-om" onAsyncClick={restartOM}>
+                            Restart OpenMower
+                        </AsyncButton>,
+                        <AsyncButton key="restart-gui" onAsyncClick={restartGUI}>
+                            Restart GUI
+                        </AsyncButton>,
+                    ]}
+                />
+            ),
+        },
+    ];
+
+    return (
+        <Row>
             <Col span={24}>
                 <Typography.Title level={2}>Settings</Typography.Title>
             </Col>
             <Col span={24}>
-                <SettingsComponent actions={(form, save, restartOM, restartGUI) => {
-                    return [
-                        <Submit loading={form.loading} onSubmit={save}>Save settings</Submit>,
-                        <AsyncButton onAsyncClick={restartOM}>Restart OpenMower</AsyncButton>,
-                        <AsyncButton onAsyncClick={restartGUI}>Restart GUI</AsyncButton>
-                    ]
-                }}/>
+                <Tabs items={items} defaultActiveKey="mower" />
             </Col>
         </Row>
-    )
-}
+    );
+};
 
 export default SettingsPage;
