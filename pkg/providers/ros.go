@@ -402,20 +402,20 @@ func (p *RosProvider) initSubscribers() error {
 	if p.imuSubscriber == nil {
 		p.imuSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/imu/data_raw",
-			Callback:  cbHandler[*sensor_msgs.Imu](p, "/imu/data_raw"),
+			Topic:     "/ll/imu/data_raw",
+			Callback:  cbHandler[*sensor_msgs.Imu](p, "/ll/imu/data_raw"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /imu/data_raw")
+		logrus.Info("Subscribed to /ll/imu/data_raw")
 	}
 	if p.ticksSubscriber == nil {
 		p.ticksSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/mower/wheel_ticks",
-			Callback:  cbHandler[*xbot_msgs.WheelTick](p, "/mower/wheel_ticks"),
+			Topic:     "/xbot_positioning/wheel_ticks_in",
+			Callback:  cbHandler[*xbot_msgs.WheelTick](p, "/xbot_positioning/wheel_ticks_in"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /mower/wheel_ticks")
+		logrus.Info("Subscribed to /xbot_positioning/wheel_ticks_in")
 	}
 	if p.mapSubscriber == nil {
 		p.mapSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
