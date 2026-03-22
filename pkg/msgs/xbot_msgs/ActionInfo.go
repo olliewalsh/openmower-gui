@@ -3,12 +3,14 @@
 package xbot_msgs
 
 import (
-	"github.com/bluenviron/goroslib/v2/pkg/msg"
+    "github.com/bluenviron/goroslib/v2/pkg/msg"
 )
 
+
 type ActionInfo struct {
-	msg.Package `ros:"xbot_msgs"`
-	ActionId    string
-	ActionName  string
-	Enabled     bool
+    msg.Package `ros:"xbot_msgs"`
+    ActionId string
+    ActionName string
+    Enabled bool
 }
+

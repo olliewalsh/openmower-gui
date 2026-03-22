@@ -152,30 +152,37 @@ export type WheelTick = {
 export type Status = {
     MowerStatus?: number
     RaspberryPiPower?: boolean
-    GpsPower?: boolean
+    IsCharging?: boolean
     EscPower?: boolean
     RainDetected?: boolean
     SoundModuleAvailable?: boolean
     SoundModuleBusy?: boolean
     UiBoardAvailable?: boolean
-    UltrasonicRanges?: [number, number, number, number, number]
-    Emergency?: boolean
+    MowEnabled?: boolean
+    MowerEscStatus?: number
+    MowerEscTemperature?: number
+    MowerEscCurrent?: number
+    MowerMotorTemperature?: number
+    MowerMotorRpm?: number
+}
+
+export type Power = {
     VCharge?: number
     VBattery?: number
     ChargeCurrent?: number
-    LeftEscStatus?: ESCStatus
-    RightEscStatus?: ESCStatus
-    MowEscStatus?: ESCStatus
-    MowEnabled?: boolean
+    ChargerEnabled?: boolean
+    ChargerStatus?: string
 }
 
-export type ESCStatus = {
-    Status?: string
-    Current?: number
-    Tacho?: number
-    Rpm?: number
-    TemperatureMotor?: number
-    TemperaturePcb?: number
+export type Emergency = {
+    ActiveEmergency?: boolean
+    LatchedEmergency?: boolean
+    Reason?: string
+}
+
+export type DockingSensor = {
+    DetectedLeft?: number
+    DetectedRight?: number
 }
 
 export type Point = {

@@ -86,6 +86,9 @@ type RosProvider struct {
 	pathSubscriber            *goroslib.Subscriber
 	currentPathSubscriber     *goroslib.Subscriber
 	poseSubscriber            *goroslib.Subscriber
+	powerSubscriber           *goroslib.Subscriber
+	emergencySubscriber       *goroslib.Subscriber
+	dockingSensorSubscriber   *goroslib.Subscriber
 	subscribers               map[string]map[string]*RosSubscriber
 	lastMessage               map[string][]byte
 	mowingPaths               []*nav_msgs.Path
@@ -178,6 +181,15 @@ func (p *RosProvider) resetSubscribers() {
 	p.statusSubscriber.Close()
 	p.ticksSubscriber.Close()
 	p.poseSubscriber.Close()
+	if p.powerSubscriber != nil {
+		p.powerSubscriber.Close()
+	}
+	if p.emergencySubscriber != nil {
+		p.emergencySubscriber.Close()
+	}
+	if p.dockingSensorSubscriber != nil {
+		p.dockingSensorSubscriber.Close()
+	}
 	p.node = nil
 	p.currentPathSubscriber = nil
 	p.gpsSubscriber = nil
@@ -188,6 +200,9 @@ func (p *RosProvider) resetSubscribers() {
 	p.statusSubscriber = nil
 	p.ticksSubscriber = nil
 	p.poseSubscriber = nil
+	p.powerSubscriber = nil
+	p.emergencySubscriber = nil
+	p.dockingSensorSubscriber = nil
 	p.mowingPaths = []*nav_msgs.Path{}
 	p.mowingPath = nil
 	p.mowingPathOrigin = nil
@@ -227,7 +242,7 @@ func (p *RosProvider) initMowingPathSubscriber() error {
 						logrus.Error(xerrors.Errorf("failed to unmarshal status: %w", err))
 						return
 					}
-					if status.MowEscStatus.Tacho > 0 {
+					if status.MowerMotorRpm > 0 {
 						if p.mowingPath == nil {
 							p.mowingPath = &nav_msgs.Path{}
 							p.mowingPathOrigin = orb.LineString{}
@@ -428,6 +443,33 @@ func (p *RosProvider) initSubscribers() error {
 			QueueSize: 1,
 		})
 		logrus.Info("Subscribed to /move_base_flex/FTCPlanner/global_plan")
+	}
+	if p.powerSubscriber == nil {
+		p.powerSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
+			Node:      node,
+			Topic:     "/mower/power",
+			Callback:  cbHandler[*mower_msgs.Power](p, "/mower/power"),
+			QueueSize: 1,
+		})
+		logrus.Info("Subscribed to /mower/power")
+	}
+	if p.emergencySubscriber == nil {
+		p.emergencySubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
+			Node:      node,
+			Topic:     "/mower/emergency",
+			Callback:  cbHandler[*mower_msgs.Emergency](p, "/mower/emergency"),
+			QueueSize: 1,
+		})
+		logrus.Info("Subscribed to /mower/emergency")
+	}
+	if p.dockingSensorSubscriber == nil {
+		p.dockingSensorSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
+			Node:      node,
+			Topic:     "/mower/docking_sensor",
+			Callback:  cbHandler[*mower_msgs.DockingSensor](p, "/mower/docking_sensor"),
+			QueueSize: 1,
+		})
+		logrus.Info("Subscribed to /mower/docking_sensor")
 	}
 	return nil
 }

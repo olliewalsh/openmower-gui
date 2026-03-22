@@ -1,15 +1,15 @@
 import {Col, Row, Statistic} from "antd";
 import {booleanFormatter, booleanFormatterInverted, progressFormatter, stateRenderer} from "./utils.tsx";
 import {useHighLevelStatus} from "../hooks/useHighLevelStatus.ts";
-import {useStatus} from "../hooks/useStatus.ts";
+import {usePower} from "../hooks/usePower.ts";
 import {useSettings} from "../hooks/useSettings.ts";
 
 export function HighLevelStatusComponent() {
     const {highLevelStatus} = useHighLevelStatus()
-    const status = useStatus()
+    const power = usePower()
     const {settings} = useSettings()
     const estimateRemainingChargingTime = () => {
-        if (!status.VBattery || !status.ChargeCurrent || status.ChargeCurrent == 0) {
+        if (!power.VBattery || !power.ChargeCurrent || power.ChargeCurrent == 0) {
             return "∞"
         }
         let capacity = (settings["OM_BATTERY_CAPACITY_MAH"] ?? "3000.0");
@@ -19,11 +19,11 @@ export function HighLevelStatusComponent() {
             return "∞"
         }
         const estimatedAmpsPerVolt = parseFloat(capacity) / (parseFloat(full) - parseFloat(empty))
-        let estimatedRemainingAmps = (parseFloat(full) - (status.VBattery ?? 0)) * estimatedAmpsPerVolt;
+        let estimatedRemainingAmps = (parseFloat(full) - (power.VBattery ?? 0)) * estimatedAmpsPerVolt;
         if (estimatedRemainingAmps < 10) {
             return "∞"
         }
-        let remaining = estimatedRemainingAmps / ((status.ChargeCurrent ?? 0) * 1000)
+        let remaining = estimatedRemainingAmps / ((power.ChargeCurrent ?? 0) * 1000)
         if (remaining < 0) {
             return "∞"
         }

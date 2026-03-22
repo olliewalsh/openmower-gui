@@ -191,6 +191,12 @@ func SubscriberRoute(group *gin.RouterGroup, provider types.IRosProvider) {
 			def, err = subscribe(provider, c, conn, "/move_base_flex/FTCPlanner/global_plan", -1)
 		case "mowingPath":
 			def, err = subscribe(provider, c, conn, "/mowing_path", -1)
+		case "power":
+			def, err = subscribe(provider, c, conn, "/mower/power", -1)
+		case "emergency":
+			def, err = subscribe(provider, c, conn, "/mower/emergency", -1)
+		case "dockingSensor":
+			def, err = subscribe(provider, c, conn, "/mower/docking_sensor", -1)
 		}
 		if err != nil {
 			log.Println(err.Error())
