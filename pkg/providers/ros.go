@@ -234,7 +234,7 @@ func (p *RosProvider) initMowingPathSubscriber() error {
 			}
 			switch highLevelStatus.StateName {
 			case "MOWING":
-				sLastMessage, ok := p.lastMessage["/mower/status"]
+				sLastMessage, ok := p.lastMessage["/ll/mower_status"]
 				if ok {
 					var status mower_msgs.Status
 					err := json.Unmarshal(sLastMessage, &status)
@@ -366,11 +366,11 @@ func (p *RosProvider) initSubscribers() error {
 	if p.statusSubscriber == nil {
 		p.statusSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/mower/status",
-			Callback:  cbHandler[*mower_msgs.Status](p, "/mower/status"),
+			Topic:     "/ll/mower_status",
+			Callback:  cbHandler[*mower_msgs.Status](p, "/ll/mower_status"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /mower/status")
+		logrus.Info("Subscribed to /ll/mower_status")
 	}
 	if p.highLevelStatusSubscriber == nil {
 		p.highLevelStatusSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
@@ -447,20 +447,20 @@ func (p *RosProvider) initSubscribers() error {
 	if p.powerSubscriber == nil {
 		p.powerSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/mower/power",
-			Callback:  cbHandler[*mower_msgs.Power](p, "/mower/power"),
+			Topic:     "/ll/power",
+			Callback:  cbHandler[*mower_msgs.Power](p, "/ll/power"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /mower/power")
+		logrus.Info("Subscribed to /ll/power")
 	}
 	if p.emergencySubscriber == nil {
 		p.emergencySubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/mower/emergency",
-			Callback:  cbHandler[*mower_msgs.Emergency](p, "/mower/emergency"),
+			Topic:     "/ll/emergency",
+			Callback:  cbHandler[*mower_msgs.Emergency](p, "/ll/emergency"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /mower/emergency")
+		logrus.Info("Subscribed to /ll/emergency")
 	}
 	if p.dockingSensorSubscriber == nil {
 		p.dockingSensorSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{

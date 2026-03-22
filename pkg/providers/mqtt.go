@@ -90,7 +90,7 @@ func (hc *MqttProvider) launchServer() {
 
 func (hc *MqttProvider) subscribeToRos() {
 	hc.subscribeToRosTopic("/mower_logic/current_state", "mqtt-mower-logic")
-	hc.subscribeToRosTopic("/mower/status", "mqtt-mower-status")
+	hc.subscribeToRosTopic("/ll/mower_status", "mqtt-mower-status")
 	hc.subscribeToRosTopic("/xbot_positioning/xb_pose", "mqtt-pose")
 	hc.subscribeToRosTopic("/xbot_driver_gps/xb_pose", "mqtt-gps")
 	hc.subscribeToRosTopic("/imu/data_raw", "mqtt-imu")
