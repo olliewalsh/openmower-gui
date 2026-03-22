@@ -92,7 +92,7 @@ func (hc *MqttProvider) subscribeToRos() {
 	hc.subscribeToRosTopic("/mower_logic/current_state", "mqtt-mower-logic")
 	hc.subscribeToRosTopic("/ll/mower_status", "mqtt-mower-status")
 	hc.subscribeToRosTopic("/xbot_positioning/xb_pose", "mqtt-pose")
-	hc.subscribeToRosTopic("/xbot_driver_gps/xb_pose", "mqtt-gps")
+	hc.subscribeToRosTopic("/ll/position/gps", "mqtt-gps")
 	hc.subscribeToRosTopic("/ll/imu/data_raw", "mqtt-imu")
 	hc.subscribeToRosTopic("/xbot_positioning/wheel_ticks_in", "mqtt-ticks")
 	hc.subscribeToRosTopic("/xbot_monitoring/map", "mqtt-map")

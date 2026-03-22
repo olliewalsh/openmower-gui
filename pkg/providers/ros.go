@@ -386,11 +386,11 @@ func (p *RosProvider) initSubscribers() error {
 	if p.gpsSubscriber == nil {
 		p.gpsSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
 			Node:      node,
-			Topic:     "/xbot_driver_gps/xb_pose",
-			Callback:  cbHandler[*xbot_msgs.AbsolutePose](p, "/xbot_driver_gps/xb_pose"),
+			Topic:     "/ll/position/gps",
+			Callback:  cbHandler[*xbot_msgs.AbsolutePose](p, "/ll/position/gps"),
 			QueueSize: 1,
 		})
-		logrus.Info("Subscribed to /xbot_driver_gps/xb_pose")
+		logrus.Info("Subscribed to /ll/position/gps")
 	}
 	if p.poseSubscriber == nil {
 		p.poseSubscriber, err = goroslib.NewSubscriber(goroslib.SubscriberConf{
