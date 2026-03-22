@@ -252,7 +252,7 @@ export const FlashBoardComponent = (props: { onNext: () => void }) => {
                     <SchemaField><SchemaField.String
                         name={"branch"}
                         title={"Branch"}
-                        default={"main"}
+                        default={"v2"}
                         x-decorator-props={{tooltip: "Branch to use for firmware"}}
                         x-component="Input"
                         x-decorator="FormItem"/></SchemaField>
@@ -459,7 +459,7 @@ export const FlashBoardComponent = (props: { onNext: () => void }) => {
                     }}
                 >
                     <StyledTerminal>
-                        <Terminal colorMode={ColorMode.Light}>
+                        <Terminal colorMode={ColorMode.Dark}>
                             {(data ?? []).map((line, index) => {
                                 return <TerminalOutput key={index}>{line}</TerminalOutput>;
                             })}

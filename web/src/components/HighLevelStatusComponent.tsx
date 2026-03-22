@@ -3,6 +3,7 @@ import {booleanFormatter, booleanFormatterInverted, progressFormatter, stateRend
 import {useHighLevelStatus} from "../hooks/useHighLevelStatus.ts";
 import {usePower} from "../hooks/usePower.ts";
 import {useSettings} from "../hooks/useSettings.ts";
+import {COLORS} from "../theme/colors.ts";
 
 export function HighLevelStatusComponent() {
     const {highLevelStatus} = useHighLevelStatus()
@@ -30,7 +31,7 @@ export function HighLevelStatusComponent() {
         return Date.now() + remaining * (1000 * 60 * 60)
     };
     return <Row gutter={[16, 16]}>
-        <Col lg={6} xs={12}><Statistic title="State" valueStyle={{color: '#3f8600'}}
+        <Col lg={6} xs={12}><Statistic title="State" valueStyle={{color: COLORS.primary}}
                                        value={stateRenderer(highLevelStatus.StateName)}/></Col>
         <Col lg={6} xs={12}><Statistic title="GPS Quality" precision={2}
                                        value={(highLevelStatus.GpsQualityPercent ?? 0) * 100}

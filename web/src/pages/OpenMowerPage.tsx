@@ -1,4 +1,4 @@
-import {Card, Col, Collapse, Row, Typography} from "antd";
+import {Card, Col, Collapse, Row} from "antd";
 import {MowerActions} from "../components/MowerActions.tsx";
 import {StatusComponent} from "../components/StatusComponent.tsx";
 import {HighLevelStatusComponent} from "../components/HighLevelStatusComponent.tsx";
@@ -8,13 +8,10 @@ import {GpsComponent} from "../components/GpsComponent.tsx";
 
 export const OpenMowerPage = () => {
     return <Row gutter={[16, 16]}>
-        <Col span={24}>
-            <Typography.Title level={2}>OpenMower</Typography.Title>
-        </Col>
-        <Col span={24}>
+        <Col lg={12} xs={24}>
             <MowerActions/>
         </Col>
-        <Col span={24}>
+        <Col lg={12} xs={24}>
             <Card title="Overview" size="small">
                 <HighLevelStatusComponent/>
             </Card>

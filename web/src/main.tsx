@@ -9,9 +9,9 @@ import LogsPage from "./pages/LogsPage.tsx";
 import OpenMowerPage from "./pages/OpenMowerPage.tsx";
 import MapPage from "./pages/MapPage.tsx";
 import SetupPage from "./pages/SetupPage.tsx";
-import {App, Row} from "antd";
-import {MowerStatus} from "./components/MowerStatus.tsx";
+import {App, ConfigProvider, theme} from "antd";
 import {Spinner} from "./components/Spinner.tsx";
+import {COLORS} from "./theme/colors.ts";
 
 const router = createHashRouter([
     {
@@ -44,14 +44,22 @@ const router = createHashRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-      <App style={{height: "100%"}}>
-          <Row
-              style={{height: '25px', borderBottom: '1px solid #1677ff', position: "absolute", top: 0, right: 0, zIndex: 100, marginLeft: 50, paddingRight: 10, paddingTop: 2}}>
-              <MowerStatus/>
-          </Row>
-          <React.Suspense fallback={<Spinner/>}>
-              <RouterProvider router={router}/>
-          </React.Suspense>
-      </App>
+      <ConfigProvider theme={{
+          algorithm: theme.darkAlgorithm,
+          token: {
+              colorPrimary: COLORS.primary,
+              colorBgContainer: COLORS.bgCard,
+              colorBgLayout: COLORS.bgBase,
+              colorBorder: COLORS.border,
+              colorText: COLORS.text,
+              borderRadius: 8,
+          },
+      }}>
+          <App style={{height: "100%"}}>
+              <React.Suspense fallback={<Spinner/>}>
+                  <RouterProvider router={router}/>
+              </React.Suspense>
+          </App>
+      </ConfigProvider>
   </React.StrictMode>,
 )

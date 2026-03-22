@@ -1,12 +1,13 @@
 import {CheckCircleTwoTone, CloseCircleTwoTone} from "@ant-design/icons";
 import {Progress} from "antd";
+import {COLORS} from "../theme/colors.ts";
 
 export const booleanFormatter = (value: any) => (value === "On" || value === "Yes") ?
-    <CheckCircleTwoTone twoToneColor={"#01d30d"}/> : <CloseCircleTwoTone
-        twoToneColor={"red"}/>;
+    <CheckCircleTwoTone twoToneColor={COLORS.primary}/> : <CloseCircleTwoTone
+        twoToneColor={COLORS.danger}/>;
 export const booleanFormatterInverted = (value: any) => (value === "On" || value === "Yes") ?
-    <CheckCircleTwoTone twoToneColor={"red"}/> : <CloseCircleTwoTone
-        twoToneColor={"#01d30d"}/>;
+    <CheckCircleTwoTone twoToneColor={COLORS.danger}/> : <CloseCircleTwoTone
+        twoToneColor={COLORS.primary}/>;
 export const stateRenderer = (value: string | undefined) => {
     switch (value) {
         case "IDLE":
@@ -24,9 +25,9 @@ export const stateRenderer = (value: string | undefined) => {
     }
 };
 export const progressFormatter = (value: any) => {
-    return <Progress steps={3} percent={value} size={25} showInfo={false}/>
+    return <Progress steps={3} percent={value} size={25} showInfo={false} strokeColor={COLORS.primary}/>
 };
 
 export const progressFormatterSmall = (value: any) => {
-    return <Progress steps={3} percent={value} size={11} showInfo={false}/>
+    return <Progress steps={3} percent={value} size={11} showInfo={false} strokeColor={COLORS.primary}/>
 };

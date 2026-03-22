@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {Submit} from '@formily/antd-v5'
 import {CheckCircleOutlined} from '@ant-design/icons'
+import {COLORS} from "../theme/colors.ts";
 import {Button, Card, Col, Row, Steps, Typography} from "antd";
 import {FlashBoardComponent} from "../components/FlashBoardComponent.tsx";
 import {SettingsComponent} from "../components/SettingsComponent.tsx";
@@ -62,7 +63,7 @@ const SetupWizard: React.FC = () => {
                 <Card title={"Setup complete"} key={"complete"}>
                     <Row gutter={[16, 16]}>
                         <Col span={24} style={{textAlign: "center"}}>
-                            <CheckCircleOutlined style={{fontSize: 48, color: 'green'}}
+                            <CheckCircleOutlined style={{fontSize: 48, color: COLORS.primary}}
                             />
                             <Typography.Title level={2}>Congratulations, your Mower is now fully
                                 configured</Typography.Title>
@@ -82,7 +83,7 @@ const SetupWizard: React.FC = () => {
     return <Row gutter={[16, 32]}>
         <Col span={24}>
             <Typography.Title level={2}>Setup</Typography.Title>
-            <Typography.Title level={5} style={{color: "#ff0000"}}>WARNING: This setup wizard will flash your
+            <Typography.Title level={5} style={{color: COLORS.danger}}>WARNING: This setup wizard will flash your
                 motherboard firmware and the GPS configuration. Run at your own risk and be careful with voltage
                 settings if you change them.</Typography.Title>
         </Col>

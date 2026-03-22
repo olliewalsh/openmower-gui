@@ -130,7 +130,7 @@ export const LogsPage = () => {
         </Col>
         <Col span={24}>
             <StyledTerminal>
-                <Terminal colorMode={ColorMode.Light}>
+                <Terminal colorMode={ColorMode.Dark}>
                     {data.map((line, index) => {
                         return <TerminalOutput key={index}>
                             <div dangerouslySetInnerHTML={{__html: ansiHTML(line)}}></div>

@@ -1,5 +1,6 @@
 import {useApi} from "../hooks/useApi.ts";
 import {Card, Col, Divider, Row} from "antd";
+import {PlayCircleOutlined, HomeOutlined, WarningOutlined} from '@ant-design/icons';
 import AsyncButton from "./AsyncButton.tsx";
 import React from "react";
 import styled from "styled-components";
@@ -134,19 +135,19 @@ export const MowerActions: React.FC<React.PropsWithChildren> = (props) => {
             {children}
             {children ? <Col><Divider type={"vertical"}/></Col> : null}
             <Col>
-                {highLevelStatus.StateName == "IDLE" ? <AsyncButton size={"small"} type="primary" key="btnHLC1" 
+                {highLevelStatus.StateName == "IDLE" ? <AsyncButton icon={<PlayCircleOutlined/>} type="primary" key="btnHLC1"
                                                                           onAsyncClick={mowerAction("high_level_control", {Command: 1})}
                 >Start</AsyncButton> : null}
-                {highLevelStatus.StateName !== "IDLE" ? <AsyncButton size={"small"} type="primary" key="btnHLC2" 
+                {highLevelStatus.StateName !== "IDLE" ? <AsyncButton icon={<HomeOutlined/>} type="primary" key="btnHLC2"
                                                                            onAsyncClick={mowerAction("high_level_control", {Command: 2})}
                 >Home</AsyncButton> : null}
             </Col>
             <Col>
                 {!highLevelStatus.Emergency ?
-                    <AsyncButton danger size={"small"} key="btnEmergencyOn" onAsyncClick={mowerAction("emergency", {Emergency: 1})}
+                    <AsyncButton danger icon={<WarningOutlined/>} key="btnEmergencyOn" onAsyncClick={mowerAction("emergency", {Emergency: 1})}
                     >Emergency On</AsyncButton> : null}
                 {highLevelStatus.Emergency ?
-                    <AsyncButton danger size={"small"} key="btnEmergencyOff" onAsyncClick={mowerAction("emergency", {Emergency: 0})}
+                    <AsyncButton danger icon={<WarningOutlined/>} key="btnEmergencyOff" onAsyncClick={mowerAction("emergency", {Emergency: 0})}
                     >Emergency Off</AsyncButton> : null}
             </Col>
             <Col>

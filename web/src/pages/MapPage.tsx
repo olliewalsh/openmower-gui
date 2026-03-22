@@ -1,4 +1,5 @@
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import {COLORS} from "../theme/colors.ts";
 import {useApi} from "../hooks/useApi.ts";
 import {App, Button, Col, Input, Modal, Row, Slider, Typography} from "antd";
 import {useWS} from "../hooks/useWS.ts";
@@ -1155,7 +1156,7 @@ export const MapPage = () => {
 
             <Col span={24}>
                 <Typography.Title level={2}>Map</Typography.Title>
-                <Typography.Title level={5} style={{color: "#ff0000"}}>
+                <Typography.Title level={5} style={{color: COLORS.danger}}>
                     WARNING: Beta, please backup your map before use
                 </Typography.Title>
             </Col>

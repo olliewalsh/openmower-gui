@@ -1,23 +1,50 @@
 import {useHighLevelStatus} from "../hooks/useHighLevelStatus.ts";
-import {Col, Row, Statistic} from "antd";
+import {Badge, Space, Typography} from "antd";
 import {PoweroffOutlined, WifiOutlined} from "@ant-design/icons"
-import {progressFormatterSmall, stateRenderer} from "./utils.tsx";
+import {stateRenderer} from "./utils.tsx";
+import {COLORS} from "../theme/colors.ts";
+
+const statusColor = (state: string | undefined): string => {
+    switch (state) {
+        case "MOWING":
+        case "DOCKING":
+        case "UNDOCKING":
+            return COLORS.primary;
+        case "IDLE":
+            return COLORS.warning;
+        default:
+            return COLORS.danger;
+    }
+};
 
 export const MowerStatus = () => {
     const {highLevelStatus} = useHighLevelStatus();
-    return <Row gutter={[16, 16]} style={{margin: 0}}>
-        <Col><Statistic valueStyle={{color: "#3f8600", fontSize: "14px"}}
-                        value={stateRenderer(highLevelStatus.StateName)}/></Col>
-        <Col><Statistic
-            prefix={<WifiOutlined style={{color: (highLevelStatus.GpsQualityPercent ?? 0) > 0 ? "green" : "red"}}
-            />}
-            valueStyle={{fontSize: "14px"}} precision={0}
-            value={(highLevelStatus.GpsQualityPercent ?? 0) * 100}
-            suffix={"%"}/></Col>
-        <Col><Statistic prefix={<PoweroffOutlined style={{color: highLevelStatus.IsCharging ? "green" : undefined}}
-        />}
-                        valueStyle={{fontSize: "14px"}} precision={2}
-                        value={(highLevelStatus.BatteryPercent ?? 0) * 100}
-                        formatter={progressFormatterSmall}/></Col>
-    </Row>;
+    const gpsPercent = Math.round((highLevelStatus.GpsQualityPercent ?? 0) * 100);
+    const batteryPercent = Math.round((highLevelStatus.BatteryPercent ?? 0) * 100);
+
+    return (
+        <Space size="middle">
+            <Space size={6}>
+                <Badge color={statusColor(highLevelStatus.StateName)} />
+                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+                    {stateRenderer(highLevelStatus.StateName)}
+                </Typography.Text>
+            </Space>
+            <Space size={6}>
+                <WifiOutlined style={{color: gpsPercent > 0 ? COLORS.primary : COLORS.danger, fontSize: 14}}/>
+                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+                    {gpsPercent}%
+                </Typography.Text>
+            </Space>
+            <Space size={6}>
+                <PoweroffOutlined style={{
+                    color: highLevelStatus.IsCharging ? COLORS.primary : COLORS.muted,
+                    fontSize: 14,
+                }}/>
+                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+                    {batteryPercent}%
+                </Typography.Text>
+            </Space>
+        </Space>
+    );
 }

@@ -91,7 +91,7 @@ export const FlashGPSComponent = (props: { onNext: () => void, onPrevious: () =>
                 }}
             >
                 <StyledTerminal>
-                    <Terminal colorMode={ColorMode.Light}>
+                    <Terminal colorMode={ColorMode.Dark}>
                         {(data ?? []).map((line, index) => {
                             return <TerminalOutput key={index}>{line}</TerminalOutput>;
                         })}
