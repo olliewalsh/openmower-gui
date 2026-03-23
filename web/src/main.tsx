@@ -9,6 +9,7 @@ import LogsPage from "./pages/LogsPage.tsx";
 import OpenMowerPage from "./pages/OpenMowerPage.tsx";
 import MapPage from "./pages/MapPage.tsx";
 import SetupPage from "./pages/SetupPage.tsx";
+import SchedulePage from "./pages/SchedulePage.tsx";
 import {App, ConfigProvider, theme} from "antd";
 import {Spinner} from "./components/Spinner.tsx";
 import {COLORS} from "./theme/colors.ts";
@@ -37,6 +38,10 @@ const router = createHashRouter([
             {
                 element: <SetupPage/>,
                 path: "/setup",
+            },
+            {
+                element: <SchedulePage/>,
+                path: "/schedule",
             }
         ]
     },

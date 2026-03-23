@@ -1,6 +1,7 @@
 import {Outlet, useMatches, useNavigate} from "react-router-dom";
 import {Layout, Menu, MenuProps, Typography} from "antd";
 import {
+    ClockCircleOutlined,
     HeatMapOutlined,
     MessageOutlined,
     RobotOutlined,
@@ -34,6 +35,11 @@ const menu: MenuProps['items'] = [
         icon: <HeatMapOutlined/>
     },
     {
+        key: '/schedule',
+        label: 'Schedule',
+        icon: <ClockCircleOutlined/>
+    },
+    {
         key: '/logs',
         label: 'Logs',
         icon: <MessageOutlined/>
@@ -50,6 +56,7 @@ const pageTitles: Record<string, string> = {
     '/setup': 'Setup',
     '/settings': 'Settings',
     '/map': 'Map',
+    '/schedule': 'Schedule',
     '/logs': 'Logs',
 };
 
