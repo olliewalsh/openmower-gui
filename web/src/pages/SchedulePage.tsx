@@ -48,13 +48,12 @@ export const SchedulePage = () => {
             await guiApi.request({
                 path: "/schedules",
                 method: "POST",
-                body: JSON.stringify({
+                body: {
                     area: 0,
                     time: "09:00",
                     daysOfWeek: [1, 2, 3, 4, 5],
                     enabled: false,
-                }),
-                headers: {"Content-Type": "application/json"},
+                },
                 format: "json",
             });
             await fetchSchedules();
@@ -70,8 +69,7 @@ export const SchedulePage = () => {
             await guiApi.request({
                 path: `/schedules/${sched.id}`,
                 method: "PUT",
-                body: JSON.stringify(sched),
-                headers: {"Content-Type": "application/json"},
+                body: sched,
                 format: "json",
             });
             await fetchSchedules();
