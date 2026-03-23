@@ -161,6 +161,8 @@ func fetchSchemaFromUpstream(schemaURL string) (map[string]any, error) {
 // - Adds "Mowgli" to OM_MOWER enum
 // - Adds conditional OM_NO_COMMS when Mowgli is selected
 // - Hides OM_HARDWARE_VERSION and ESC_TYPE for Mowgli (they're not relevant)
+// - Promotes GPS port/protocol out of "advanced" with Mowgli defaults
+// - Sets Mowgli-specific defaults for battery voltages (YardForce 500B uses 24V)
 func applyMowgliOverlay(schema map[string]any) map[string]any {
 	props, ok := schema["properties"].(map[string]any)
 	if !ok {
@@ -192,34 +194,33 @@ func applyMowgliOverlay(schema map[string]any) map[string]any {
 		}
 	}
 
-	// Move OM_HARDWARE_VERSION and ESC_TYPE behind a conditional
-	// so they only show for non-Mowgli builds
-	hwVersion, hasHWVersion := hwProps["OM_HARDWARE_VERSION"]
-	escType, hasESCType := hwProps["ESC_TYPE"]
-
-	if hasHWVersion || hasESCType {
-		// Remove from base properties
-		delete(hwProps, "OM_HARDWARE_VERSION")
-		delete(hwProps, "ESC_TYPE")
-
-		// Build the non-Mowgli condition (show HW version + ESC type)
-		nonMowgliEnumValues := []any{}
-		if omMower != nil {
-			if enumList, ok := omMower["enum"].([]any); ok {
-				for _, v := range enumList {
-					if v != "Mowgli" {
-						nonMowgliEnumValues = append(nonMowgliEnumValues, v)
-					}
+	// Collect non-Mowgli enum values for conditionals
+	nonMowgliEnumValues := []any{}
+	if omMower != nil {
+		if enumList, ok := omMower["enum"].([]any); ok {
+			for _, v := range enumList {
+				if v != "Mowgli" {
+					nonMowgliEnumValues = append(nonMowgliEnumValues, v)
 				}
 			}
 		}
+	}
+
+	// Move OM_HARDWARE_VERSION and ESC_TYPE behind a conditional
+	// so they only show for non-Mowgli builds
+	hwVersion, hasHWVersion := hwProps["OM_HARDWARE_VERSION"]
+	escType, hasESCType := hwProps["OM_MOWER_ESC_TYPE"]
+
+	if hasHWVersion || hasESCType {
+		delete(hwProps, "OM_HARDWARE_VERSION")
+		delete(hwProps, "OM_MOWER_ESC_TYPE")
 
 		nonMowgliProps := map[string]any{}
 		if hasHWVersion {
 			nonMowgliProps["OM_HARDWARE_VERSION"] = hwVersion
 		}
 		if hasESCType {
-			nonMowgliProps["ESC_TYPE"] = escType
+			nonMowgliProps["OM_MOWER_ESC_TYPE"] = escType
 		}
 
 		nonMowgliCondition := map[string]any{
@@ -233,7 +234,6 @@ func applyMowgliOverlay(schema map[string]any) map[string]any {
 			},
 		}
 
-		// Build the Mowgli condition (show OM_NO_COMMS)
 		mowgliCondition := map[string]any{
 			"if": map[string]any{
 				"properties": map[string]any{
@@ -253,13 +253,116 @@ func applyMowgliOverlay(schema map[string]any) map[string]any {
 			},
 		}
 
-		// Append to existing allOf or create one
 		existingAllOf, _ := hw["allOf"].([]any)
 		hw["allOf"] = append(existingAllOf, nonMowgliCondition, mowgliCondition)
 	}
 
+	// Promote GPS settings out of "advanced" toggle for Mowgli
+	// and set Mowgli-specific defaults (GPS on /dev/gps, UBX protocol)
+	applyMowgliGPSOverlay(props)
+
+	// Promote mower logic advanced settings (includes OM_PERIMETER_SIGNAL
+	// which is Mowgli-specific)
+	promoteAdvancedSection(props, "mower_logic_settings", nil)
+
 	return schema
 }
+
+// applyMowgliGPSOverlay promotes GPS settings from "advanced" and sets
+// Mowgli-specific defaults.
+func applyMowgliGPSOverlay(props map[string]any) {
+	overrides := map[string]map[string]any{
+		"OM_GPS_PORT": {
+			"default":     "/dev/gps",
+			"title":       "GPS Port",
+			"description": "Serial port for the GPS board. Mowgli default: /dev/gps",
+		},
+		"OM_GPS_PROTOCOL": {
+			"default": "UBX",
+		},
+		"OM_GPS_BAUDRATE": {
+			"default": "921600",
+			"title":   "GPS Baud Rate",
+		},
+	}
+	promoteAdvancedSection(props, "gps_settings", overrides)
+}
+
+// promoteAdvancedSection removes the "advanced" boolean toggle from a schema
+// section and moves all conditionally-shown properties into the base properties.
+// Optional overrides let the caller set Mowgli-specific defaults on promoted fields.
+func promoteAdvancedSection(props map[string]any, sectionKey string, overrides map[string]map[string]any) {
+	section, ok := props[sectionKey].(map[string]any)
+	if !ok {
+		return
+	}
+	sectionProps, ok := section["properties"].(map[string]any)
+	if !ok {
+		return
+	}
+	allOf, ok := section["allOf"].([]any)
+	if !ok {
+		return
+	}
+
+	var advancedProps map[string]any
+	var remainingAllOf []any
+
+	for _, cond := range allOf {
+		condMap, ok := cond.(map[string]any)
+		if !ok {
+			remainingAllOf = append(remainingAllOf, cond)
+			continue
+		}
+		ifBlock, ok := condMap["if"].(map[string]any)
+		if !ok {
+			remainingAllOf = append(remainingAllOf, cond)
+			continue
+		}
+		ifProps, ok := ifBlock["properties"].(map[string]any)
+		if !ok {
+			remainingAllOf = append(remainingAllOf, cond)
+			continue
+		}
+		if _, isAdvanced := ifProps["advanced"]; isAdvanced {
+			if thenBlock, ok := condMap["then"].(map[string]any); ok {
+				if thenProps, ok := thenBlock["properties"].(map[string]any); ok {
+					advancedProps = thenProps
+				}
+			}
+			continue
+		}
+		remainingAllOf = append(remainingAllOf, cond)
+	}
+
+	if advancedProps == nil {
+		return
+	}
+
+	// Remove the "advanced" toggle
+	delete(sectionProps, "advanced")
+
+	// Promote all advanced properties into base properties
+	for key, prop := range advancedProps {
+		if overrides != nil {
+			if ov, ok := overrides[key]; ok {
+				if propMap, ok := prop.(map[string]any); ok {
+					for k, v := range ov {
+						propMap[k] = v
+					}
+				}
+			}
+		}
+		sectionProps[key] = prop
+	}
+
+	if len(remainingAllOf) > 0 {
+		section["allOf"] = remainingAllOf
+	} else {
+		delete(section, "allOf")
+	}
+}
+
 
 // GetSettingsSchema returns the JSON Schema describing all mower configuration parameters.
 // It fetches the schema from the upstream OpenMower repository and caches it,

@@ -197,7 +197,7 @@ func TestGetSettingsSchema_FromUpstream(t *testing.T) {
 	resetSchemaCache()
 
 	// Mock upstream server serving the schema
-	upstreamSchema := `{"type":"object","properties":{"important_settings":{"title":"Hardware Settings","type":"object","properties":{"OM_HARDWARE_VERSION":{"type":"string","enum":["0_13_X"],"x-environment-variable":"OM_HARDWARE_VERSION"},"OM_MOWER":{"type":"string","enum":["YardForce500","CUSTOM"],"x-environment-variable":"OM_MOWER"},"ESC_TYPE":{"type":"string","enum":["xesc_mini"],"x-environment-variable":"ESC_TYPE"}}}}}`
+	upstreamSchema := `{"type":"object","properties":{"important_settings":{"title":"Hardware Settings","type":"object","properties":{"OM_HARDWARE_VERSION":{"type":"string","enum":["0_13_X"],"x-environment-variable":"OM_HARDWARE_VERSION"},"OM_MOWER":{"type":"string","enum":["YardForce500","CUSTOM"],"x-environment-variable":"OM_MOWER"},"OM_MOWER_ESC_TYPE":{"type":"string","enum":["xesc_mini"],"x-environment-variable":"OM_MOWER_ESC_TYPE"}}}}}`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(upstreamSchema))
@@ -233,7 +233,7 @@ func TestGetSettingsSchema_FromUpstream(t *testing.T) {
 	// OM_HARDWARE_VERSION and ESC_TYPE should be removed from base props
 	// (moved to conditional allOf)
 	assert.NotContains(t, hwProps, "OM_HARDWARE_VERSION")
-	assert.NotContains(t, hwProps, "ESC_TYPE")
+	assert.NotContains(t, hwProps, "OM_MOWER_ESC_TYPE")
 
 	// allOf should contain the conditions
 	allOf := hw["allOf"].([]any)
@@ -307,7 +307,7 @@ func TestApplyMowgliOverlay(t *testing.T) {
 						"type": "string",
 						"enum": []any{"0_13_X"},
 					},
-					"ESC_TYPE": map[string]any{
+					"OM_MOWER_ESC_TYPE": map[string]any{
 						"type": "string",
 						"enum": []any{"xesc_mini"},
 					},
@@ -330,7 +330,7 @@ func TestApplyMowgliOverlay(t *testing.T) {
 
 	// OM_HARDWARE_VERSION and ESC_TYPE should be removed from base props
 	assert.NotContains(t, hwProps, "OM_HARDWARE_VERSION")
-	assert.NotContains(t, hwProps, "ESC_TYPE")
+	assert.NotContains(t, hwProps, "OM_MOWER_ESC_TYPE")
 
 	// Gamepad should remain
 	assert.Contains(t, hwProps, "OM_MOWER_GAMEPAD")
@@ -344,7 +344,7 @@ func TestApplyMowgliOverlay(t *testing.T) {
 	nonMowgliThen := nonMowgli["then"].(map[string]any)
 	nonMowgliProps := nonMowgliThen["properties"].(map[string]any)
 	assert.Contains(t, nonMowgliProps, "OM_HARDWARE_VERSION")
-	assert.Contains(t, nonMowgliProps, "ESC_TYPE")
+	assert.Contains(t, nonMowgliProps, "OM_MOWER_ESC_TYPE")
 
 	// Second condition: Mowgli shows OM_NO_COMMS
 	mowgli := allOf[1].(map[string]any)

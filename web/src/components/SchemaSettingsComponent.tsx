@@ -145,7 +145,8 @@ const KeyValueEditor: React.FC<KeyValueEditorProps> = ({ title, description, ent
 
 const resolveConditionalProperties = (
     allOf: JSONSchemaCondition[] | undefined,
-    values: Record<string, any>
+    values: Record<string, any>,
+    baseProps?: Record<string, JSONSchemaProperty>
 ): Record<string, JSONSchemaProperty> => {
     if (!allOf) return {};
     const result: Record<string, JSONSchemaProperty> = {};
@@ -155,7 +156,8 @@ const resolveConditionalProperties = (
 
         let matches = true;
         for (const [key, check] of Object.entries(condition.if.properties)) {
-            const currentVal = values[key];
+            // Fall back to schema default when the value hasn't been set yet
+            const currentVal = values[key] ?? baseProps?.[key]?.default;
             if (check.const !== undefined && currentVal !== check.const) {
                 matches = false;
                 break;
@@ -231,7 +233,7 @@ const SchemaSection: React.FC<SectionProps> = ({ sectionKey, section, values, on
     }
 
     const baseProps = section.properties || {};
-    const conditionalProps = resolveConditionalProperties(section.allOf, values);
+    const conditionalProps = resolveConditionalProperties(section.allOf, values, baseProps);
     const allProps = { ...baseProps, ...conditionalProps };
 
     return (
