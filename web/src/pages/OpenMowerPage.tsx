@@ -1,6 +1,7 @@
 import {Card, Col, Collapse, Row} from "antd";
 import {MowerActions} from "../components/MowerActions.tsx";
 import {StatusComponent} from "../components/StatusComponent.tsx";
+import {SystemInfoComponent} from "../components/SystemInfoComponent.tsx";
 import {HighLevelStatusComponent} from "../components/HighLevelStatusComponent.tsx";
 import {ImuComponent} from "../components/ImuComponent.tsx";
 import {WheelTicksComponent} from "../components/WheelTicksComponent.tsx";
@@ -18,6 +19,9 @@ export const OpenMowerPage = () => {
         </Col>
         <Col span={24}>
             <StatusComponent/>
+        </Col>
+        <Col span={24}>
+            <SystemInfoComponent/>
         </Col>
         <Col span={24}>
             <Collapse
