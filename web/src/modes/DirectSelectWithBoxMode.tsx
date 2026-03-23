@@ -77,8 +77,12 @@ DirectSelectWithBoxMode.pathsToCoordinates = function (featureId: any, paths: an
 };
 
 DirectSelectWithBoxMode.onFeature = function (state: any, e: any) {
-  if (state.selectedCoordPaths.length === 0) this.startDragging(state, e);
-  else this.stopDragging(state);
+  // Require Ctrl/Cmd key to drag the entire area (prevents accidental moves)
+  if (state.selectedCoordPaths.length === 0 && (e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
+    this.startDragging(state, e);
+  } else {
+    this.stopDragging(state);
+  }
 };
 
 DirectSelectWithBoxMode.dragFeature = function (state: any, e: any, delta: any) {
@@ -201,7 +205,9 @@ DirectSelectWithBoxMode.onMouseMove = function (state: any, e: any) {
   const onVertex = isVertex(e);
   const isMidPoint = isMidpoint(e);
   const noCoords = state.selectedCoordPaths.length === 0;
-  if (isFeature && noCoords) this.updateUIClasses({ mouse: Constants.cursors.MOVE });
+  // Only show move cursor for whole area when Ctrl/Cmd is held
+  if (isFeature && noCoords && (e.originalEvent.ctrlKey || e.originalEvent.metaKey)) this.updateUIClasses({ mouse: Constants.cursors.MOVE });
+  else if (isFeature && noCoords) this.updateUIClasses({ mouse: Constants.cursors.POINTER });
   else if (onVertex && !noCoords) this.updateUIClasses({ mouse: Constants.cursors.MOVE });
   else this.updateUIClasses({ mouse: Constants.cursors.NONE });
 
