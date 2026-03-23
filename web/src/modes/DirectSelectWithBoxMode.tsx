@@ -116,7 +116,12 @@ DirectSelectWithBoxMode.clickInactive = function () {
   this.changeMode(Constants.modes.SIMPLE_SELECT, {});
 };
 
-DirectSelectWithBoxMode.clickActiveFeature = function (state: any) {
+DirectSelectWithBoxMode.clickActiveFeature = function (state: any, e: any) {
+  if (e?.originalEvent?.detail >= 2) {
+    // Double-click on active feature opens the edit modal
+    this.map.fire('feature.open', { feature: state.feature });
+    return;
+  }
   state.selectedCoordPaths = [];
   this.clearSelectedCoordinates();
   state.feature.changed();

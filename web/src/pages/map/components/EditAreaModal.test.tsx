@@ -8,6 +8,8 @@ describe('EditAreaModal', () => {
     const area = new MowingAreaEdit();
     area.name = 'Garden';
     area.mowing_order = 2;
+    area.feature_type = 'workarea';
+    area.orig_feature_type = 'workarea';
 
     const defaultProps = {
         open: true,
@@ -28,14 +30,35 @@ describe('EditAreaModal', () => {
         expect(screen.getByText('Edit area')).toBeInTheDocument();
     });
 
-    it('renders with area name in input', () => {
+    it('renders with area name in input for workarea', () => {
         render(<EditAreaModal {...defaultProps} />);
         expect(screen.getByDisplayValue('Garden')).toBeInTheDocument();
     });
 
-    it('renders with mowing order', () => {
+    it('renders with mowing order for workarea', () => {
         render(<EditAreaModal {...defaultProps} />);
         expect(screen.getByDisplayValue('2')).toBeInTheDocument();
+    });
+
+    it('shows area type selector', () => {
+        render(<EditAreaModal {...defaultProps} />);
+        expect(screen.getByText('Mowing Area')).toBeInTheDocument();
+    });
+
+    it('hides name and mowing order for navigation type', () => {
+        const navArea = new MowingAreaEdit();
+        navArea.feature_type = 'navigation';
+        render(<EditAreaModal {...defaultProps} area={navArea} />);
+        expect(screen.queryByDisplayValue('Garden')).not.toBeInTheDocument();
+        expect(screen.queryByText('Mowing order')).not.toBeInTheDocument();
+    });
+
+    it('hides name and mowing order for obstacle type', () => {
+        const obstArea = new MowingAreaEdit();
+        obstArea.feature_type = 'obstacle';
+        render(<EditAreaModal {...defaultProps} area={obstArea} />);
+        expect(screen.queryByText('Area name')).not.toBeInTheDocument();
+        expect(screen.queryByText('Mowing order')).not.toBeInTheDocument();
     });
 
     it('does not render when closed', () => {

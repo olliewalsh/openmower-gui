@@ -48,6 +48,7 @@ export const MapPage = () => {
 
     const [currentFeature, setCurrentFeature] = useState<Feature | undefined>(undefined)
     const [curMowingAreaFeature, setCurMowingAreaFeature] = useState<MowingAreaEdit>(new MowingAreaEdit())
+    const [selectedFeatureId, setSelectedFeatureId] = useState<string | undefined>(undefined)
 
     const {settings} = useSettings()
     const [labelsCollection, setLabelsCollection] = useState<FeatureCollection>({
@@ -762,32 +763,63 @@ export const MapPage = () => {
     }
 
     function updateMowingArea() {
-        if ((!curMowingAreaFeature) || (!curMowingAreaFeature.id) )
+        if ((!curMowingAreaFeature) || (!curMowingAreaFeature.id))
             return;
-    
+
         setAreaModelOpen(false);
         const newFeatures = {...features} as Record<string, MowingFeature>;
-        const f = newFeatures[curMowingAreaFeature.id];
-        if ((! f) || (!(f instanceof MowingAreaFeature)))
+        const oldFeature = newFeatures[curMowingAreaFeature.id];
+        if (!oldFeature || !(oldFeature instanceof MowingFeatureBase))
             return;
 
-        f.setName(curMowingAreaFeature.name);
+        const typeChanged = curMowingAreaFeature.feature_type !== curMowingAreaFeature.orig_feature_type;
 
-        if (curMowingAreaFeature.mowing_order != curMowingAreaFeature.orig_mowing_order){
+        if (typeChanged) {
+            // Replace the feature with the correct class for the new type
+            const geometry = oldFeature.geometry;
+            let replacement: MowingFeatureBase;
+            const newId = curMowingAreaFeature.id;
 
-            f.setMowingOrder(curMowingAreaFeature.mowing_order);
-            sortFeatures(newFeatures, curMowingAreaFeature);
+            switch (curMowingAreaFeature.feature_type) {
+                case 'navigation':
+                    replacement = new NavigationFeature(newId);
+                    replacement.setGeometry(geometry);
+                    break;
+                case 'obstacle': {
+                    // Find the first mowing area to use as parent
+                    const parentArea = Object.values(newFeatures).find(
+                        (f): f is MowingAreaFeature => f instanceof MowingAreaFeature
+                    );
+                    if (!parentArea) {
+                        // No mowing area exists; cannot create orphan obstacle
+                        return;
+                    }
+                    replacement = new ObstacleFeature(newId, parentArea);
+                    replacement.setGeometry(geometry);
+                    break;
+                }
+                default: // workarea
+                    replacement = new MowingAreaFeature(newId, curMowingAreaFeature.mowing_order);
+                    replacement.setGeometry(geometry);
+                    (replacement as MowingAreaFeature).setName(curMowingAreaFeature.name);
+                    break;
+            }
+            newFeatures[newId] = replacement;
+        } else if (oldFeature instanceof MowingAreaFeature) {
+            oldFeature.setName(curMowingAreaFeature.name);
+            if (curMowingAreaFeature.mowing_order !== curMowingAreaFeature.orig_mowing_order) {
+                oldFeature.setMowingOrder(curMowingAreaFeature.mowing_order);
+                sortFeatures(newFeatures, curMowingAreaFeature);
+            }
         }
-        setFeatures(newFeatures)
 
-        const labels = buildLabels(Object.values(newFeatures))
+        setFeatures(newFeatures);
+
+        const labels = buildLabels(Object.values(newFeatures));
         setLabelsCollection({
             type: "FeatureCollection",
-            features: labels
+            features: labels,
         });
- 
-        //setCurMowingAreaFeature(undefined)
-        setAreaModelOpen(false);
     }
 
 
@@ -796,24 +828,43 @@ export const MapPage = () => {
             return;
 
         const feature = e.feature as Feature<Polygon>;
-        if (!feature) 
+        if (!feature)
             return;
 
-        if (feature.properties?.feature_type != 'workarea') { 
+        const props = feature.properties;
+        const ftype = props?.feature_type;
+        if (ftype !== 'workarea' && ftype !== 'navigation' && ftype !== 'obstacle') {
             notification.info({
-                message: "Unable to edit this area"});
+                message: "Unable to edit this feature"});
             return;
         }
-        /* we can' t access features here, assume this area exists for now */
         setCurMowingAreaFeature(
             { id            : feature.id
-            , index         : feature.properties.index
-            , name          : feature.properties.name
-            , mowing_order  : feature.properties.mowing_order
-            , orig_mowing_order  : feature.properties.mowing_order} as MowingAreaEdit);
+            , index         : props?.index ?? -1
+            , name          : props?.name ?? ''
+            , mowing_order  : props?.mowing_order ?? 9999
+            , orig_mowing_order  : props?.mowing_order ?? 9999
+            , feature_type  : ftype
+            , orig_feature_type  : ftype} as MowingAreaEdit);
 
         setAreaModelOpen(true);
     }, [notification]);
+
+    const onSelectionChange = useCallback((e: { features: GeoJSON.Feature[] }) => {
+        if (e.features.length === 1 && e.features[0].id) {
+            setSelectedFeatureId(String(e.features[0].id));
+        } else {
+            setSelectedFeatureId(undefined);
+        }
+    }, []);
+
+    const handleEditSelectedFeature = useCallback(() => {
+        if (!selectedFeatureId) return;
+        const feat = features[selectedFeatureId];
+        if (!feat) return;
+        // Reuse onOpenDetails by constructing the expected event shape
+        onOpenDetails({feature: feat});
+    }, [selectedFeatureId, features, onOpenDetails]);
 
     const onDelete = useCallback((e: any) => {
         setFeatures(currFeatures => {
@@ -1190,6 +1241,7 @@ export const MapPage = () => {
                         onUpdate={onUpdate}
                         onCombine={onCombine}
                         onDelete={onDelete}
+                        onSelectionChange={onSelectionChange}
                         onOpenDetails={onOpenDetails}
                     />
                     <Source type={"geojson"} id={"lidar"} data={lidarCollection}>
@@ -1220,7 +1272,9 @@ export const MapPage = () => {
                     historyIndex={historyIndex}
                     editHistoryLength={editHistory.length}
                     mowingAreas={mowingAreas}
+                    hasSelectedFeature={!!selectedFeatureId}
                     onEditMap={handleEditMap}
+                    onEditSelectedFeature={handleEditSelectedFeature}
                     onSaveMap={handleSaveMap}
                     onUndo={handleUndo}
                     onRedo={handleRedo}

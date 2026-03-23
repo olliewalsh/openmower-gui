@@ -60,11 +60,10 @@ export default function DrawControl(props: DrawControlProps) {
     }, [mp, props.features]);
     useEffect(() => {
         if (mp) {
-            if (!props.editMode) {
-                mp.changeMode('simple_select');
-            } else {
-                mp.changeMode('draw_polygon');
-            }
+            // Always start in simple_select — user can draw via the polygon tool button.
+            // Previously this switched to draw_polygon in edit mode, which caused the
+            // first click to start drawing instead of selecting existing features.
+            mp.changeMode('simple_select');
         }
     }, [mp, props.editMode]);
     return null;

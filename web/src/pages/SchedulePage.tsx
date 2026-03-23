@@ -1,7 +1,9 @@
-import {App, Button, Card, Checkbox, Col, Row, Switch, TimePicker, InputNumber, Table, Space, Popconfirm} from "antd";
+import {App, Button, Card, Checkbox, Col, Row, Select, Switch, TimePicker, Table, Space, Popconfirm} from "antd";
 import {ClockCircleOutlined, DeleteOutlined, PlusOutlined} from "@ant-design/icons";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useApi} from "../hooks/useApi.ts";
+import {useWS} from "../hooks/useWS.ts";
+import {Map as MapType} from "../types/ros.ts";
 import dayjs from "dayjs";
 
 interface Schedule {
@@ -16,12 +18,50 @@ interface Schedule {
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function areaLabel(index: number, name: string | undefined): string {
+    return name ? `${index + 1}. ${name}` : `Area ${index + 1}`;
+}
+
 export const SchedulePage = () => {
     const guiApi = useApi();
     const {notification} = App.useApp();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [loading, setLoading] = useState(false);
+    const [workingAreas, setWorkingAreas] = useState<Array<string | undefined>>([]);
     const fetchedRef = useRef(false);
+
+    const mapStream = useWS<string>(
+        () => {
+            console.log("SchedulePage: map stream closed");
+        },
+        () => {
+            console.log("SchedulePage: map stream connected");
+        },
+        (data) => {
+            const parsed = JSON.parse(data) as MapType;
+            const names = (parsed.WorkingArea ?? []).map((a) => a.Name);
+            setWorkingAreas(names);
+        },
+    );
+
+    useEffect(() => {
+        mapStream.start("/api/openmower/subscribe/map");
+        return () => {
+            mapStream.stop();
+        };
+        // mapStream functions are stable across renders — intentionally omitting from deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const areaOptions = workingAreas.length > 0
+        ? workingAreas.map((name, index) => ({
+            label: areaLabel(index, name),
+            value: index,
+          }))
+        : Array.from({length: Math.max(1, schedules.reduce((max, s) => Math.max(max, s.area + 1), 1))}, (_, i) => ({
+            label: areaLabel(i, undefined),
+            value: i,
+          }));
 
     const fetchSchedules = useCallback(async () => {
         try {
@@ -124,17 +164,21 @@ export const SchedulePage = () => {
             title: "Area",
             dataIndex: "area",
             key: "area",
-            width: 80,
-            render: (area: number, record: Schedule) => (
-                <InputNumber
-                    value={area}
-                    min={0}
-                    size="small"
-                    onChange={(val) => {
-                        if (val != null) handleUpdate({...record, area: val});
-                    }}
-                />
-            ),
+            width: 200,
+            render: (area: number, record: Schedule) => {
+                const optionsWithCurrent = areaOptions.some((o) => o.value === area)
+                    ? areaOptions
+                    : [...areaOptions, {label: areaLabel(area, undefined), value: area}];
+                return (
+                    <Select
+                        value={area}
+                        size="small"
+                        style={{width: "100%"}}
+                        options={optionsWithCurrent}
+                        onChange={(val) => handleUpdate({...record, area: val})}
+                    />
+                );
+            },
         },
         {
             title: "Days",

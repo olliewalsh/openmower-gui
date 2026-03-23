@@ -69,7 +69,7 @@ describe('MapToolbar', () => {
 
     it('shows Cancel button in edit mode', () => {
         render(<MapToolbar {...defaultProps} editMap={true} />);
-        expect(screen.getByText('Cancel Map Edition')).toBeInTheDocument();
+        expect(screen.getByText('Cancel')).toBeInTheDocument();
     });
 
     it('shows satellite toggle with correct label', () => {
@@ -92,22 +92,37 @@ describe('MapToolbar', () => {
         expect(screen.getByText('Stop Manual Mowing')).toBeInTheDocument();
     });
 
-    it('always shows Backup Map and Restore Map', () => {
+    it('always shows the More dropdown trigger', () => {
         render(<MapToolbar {...defaultProps} />);
+        expect(screen.getByText('More')).toBeInTheDocument();
+    });
+
+    it('shows Backup Map and Restore Map in More dropdown', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
         expect(screen.getByText('Backup Map')).toBeInTheDocument();
         expect(screen.getByText('Restore Map')).toBeInTheDocument();
     });
 
-    it('shows Download GeoJSON in view mode', () => {
+    it('shows Download GeoJSON in More dropdown', async () => {
+        const user = userEvent.setup();
         render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
         expect(screen.getByText('Download GeoJSON')).toBeInTheDocument();
     });
 
-    it('shows Upload GeoJSON only in edit mode', () => {
-        const {rerender} = render(<MapToolbar {...defaultProps} />);
+    it('does not show Upload GeoJSON in More dropdown in view mode', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
         expect(screen.queryByText('Upload GeoJSON')).not.toBeInTheDocument();
+    });
 
-        rerender(<MapToolbar {...defaultProps} editMap={true} />);
+    it('shows Upload GeoJSON in More dropdown only in edit mode', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} editMap={true} />);
+        await user.click(screen.getByText('More'));
         expect(screen.getByText('Upload GeoJSON')).toBeInTheDocument();
     });
 
@@ -133,11 +148,36 @@ describe('MapToolbar', () => {
         expect(defaultProps.onToggleSatellite).toHaveBeenCalled();
     });
 
-    it('calls onBackupMap when Backup Map clicked', async () => {
+    it('calls onBackupMap when Backup Map clicked in More dropdown', async () => {
         const user = userEvent.setup();
         render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
         await user.click(screen.getByText('Backup Map'));
         expect(defaultProps.onBackupMap).toHaveBeenCalled();
+    });
+
+    it('calls onRestoreMap when Restore Map clicked in More dropdown', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
+        await user.click(screen.getByText('Restore Map'));
+        expect(defaultProps.onRestoreMap).toHaveBeenCalled();
+    });
+
+    it('calls onDownloadGeoJSON when Download GeoJSON clicked in More dropdown', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} />);
+        await user.click(screen.getByText('More'));
+        await user.click(screen.getByText('Download GeoJSON'));
+        expect(defaultProps.onDownloadGeoJSON).toHaveBeenCalled();
+    });
+
+    it('calls onUploadGeoJSON when Upload GeoJSON clicked in More dropdown (edit mode)', async () => {
+        const user = userEvent.setup();
+        render(<MapToolbar {...defaultProps} editMap={true} />);
+        await user.click(screen.getByText('More'));
+        await user.click(screen.getByText('Upload GeoJSON'));
+        expect(defaultProps.onUploadGeoJSON).toHaveBeenCalled();
     });
 
     it('disables undo when at start of history', () => {
