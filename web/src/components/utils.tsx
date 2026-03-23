@@ -21,7 +21,7 @@ export const stateRenderer = (value: string | undefined) => {
         case "AREA_RECORDING":
             return "Area Recording"
         default:
-            return "Unknown"
+            return value ?? "Offline"
     }
 };
 export const progressFormatter = (value: any) => {

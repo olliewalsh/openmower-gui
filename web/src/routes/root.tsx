@@ -46,7 +46,7 @@ const menu: MenuProps['items'] = [
     },
     {
         key: 'new',
-        label: <span className={"beamerTrigger"} style={{paddingRight: 30}}>What's new</span>,
+        label: <span className={"beamerTrigger"}>What's new</span>,
         icon: <RocketFilled/>,
     }
 ];
@@ -113,13 +113,15 @@ export default () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: 12,
                     padding: '0 24px',
                     background: COLORS.bgCard,
                     borderBottom: `1px solid ${COLORS.border}`,
                     height: 48,
                     lineHeight: '48px',
+                    overflow: 'hidden',
                 }}>
-                    <Typography.Text strong style={{fontSize: 16, color: COLORS.text}}>
+                    <Typography.Text strong style={{fontSize: 16, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, minWidth: 0}}>
                         {pageTitle}
                     </Typography.Text>
                     <MowerStatus/>

@@ -1,4 +1,4 @@
-import { Col, Row, Tabs, Typography } from "antd";
+import { Col, Row, Tabs } from "antd";
 import { SettingsComponent } from "../components/SettingsComponent.tsx";
 import { SchemaSettingsComponent } from "../components/SchemaSettingsComponent.tsx";
 import { Submit } from "@formily/antd-v5";
@@ -82,9 +82,6 @@ export const SettingsPage = () => {
 
     return (
         <Row>
-            <Col span={24}>
-                <Typography.Title level={2}>Settings</Typography.Title>
-            </Col>
             <Col span={24}>
                 <Tabs items={items} defaultActiveKey="mower" />
             </Col>

@@ -82,10 +82,9 @@ const SetupWizard: React.FC = () => {
 
     return <Row gutter={[16, 32]}>
         <Col span={24}>
-            <Typography.Title level={2}>Setup</Typography.Title>
-            <Typography.Title level={5} style={{color: COLORS.danger}}>WARNING: This setup wizard will flash your
+            <Typography.Text type="danger">WARNING: This setup wizard will flash your
                 motherboard firmware and the GPS configuration. Run at your own risk and be careful with voltage
-                settings if you change them.</Typography.Title>
+                settings if you change them.</Typography.Text>
         </Col>
         <Col span={24}>
             <Steps current={currentStep}>

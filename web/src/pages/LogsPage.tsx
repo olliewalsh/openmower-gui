@@ -1,4 +1,4 @@
-import {App, Col, Row, Select, Typography} from "antd";
+import {App, Col, Row, Select} from "antd";
 import {useEffect, useState} from "react";
 import Terminal, {ColorMode, TerminalOutput} from "react-terminal-ui";
 import AsyncButton from "../components/AsyncButton.tsx";
@@ -106,9 +106,6 @@ export const LogsPage = () => {
     };
     const selectedContainer = containers.find((container) => container.value === containerId);
     return <Row>
-        <Col span={24}>
-            <Typography.Title level={2}>Container logs</Typography.Title>
-        </Col>
         <Col span={24}>
             <MowerActions/>
         </Col>

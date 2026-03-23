@@ -23,25 +23,25 @@ export const MowerStatus = () => {
     const batteryPercent = Math.round((highLevelStatus.BatteryPercent ?? 0) * 100);
 
     return (
-        <Space size="middle">
-            <Space size={6}>
+        <Space size="small" style={{flexShrink: 0}}>
+            <Space size={4}>
                 <Badge color={statusColor(highLevelStatus.StateName)} />
-                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+                <Typography.Text style={{fontSize: 12, color: COLORS.text, whiteSpace: 'nowrap'}}>
                     {stateRenderer(highLevelStatus.StateName)}
                 </Typography.Text>
             </Space>
-            <Space size={6}>
-                <WifiOutlined style={{color: gpsPercent > 0 ? COLORS.primary : COLORS.danger, fontSize: 14}}/>
-                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+            <Space size={4}>
+                <WifiOutlined style={{color: gpsPercent > 0 ? COLORS.primary : COLORS.danger, fontSize: 13}}/>
+                <Typography.Text style={{fontSize: 12, color: COLORS.text}}>
                     {gpsPercent}%
                 </Typography.Text>
             </Space>
-            <Space size={6}>
+            <Space size={4}>
                 <PoweroffOutlined style={{
                     color: highLevelStatus.IsCharging ? COLORS.primary : COLORS.muted,
-                    fontSize: 14,
+                    fontSize: 13,
                 }}/>
-                <Typography.Text style={{fontSize: 13, color: COLORS.text}}>
+                <Typography.Text style={{fontSize: 12, color: COLORS.text}}>
                     {batteryPercent}%
                 </Typography.Text>
             </Space>

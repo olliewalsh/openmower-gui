@@ -33,15 +33,15 @@ export function HighLevelStatusComponent() {
     return <Row gutter={[16, 16]}>
         <Col lg={6} xs={12}><Statistic title="State" valueStyle={{color: COLORS.primary}}
                                        value={stateRenderer(highLevelStatus.StateName)}/></Col>
-        <Col lg={6} xs={12}><Statistic title="GPS Quality" precision={2}
+        <Col lg={6} xs={12}><Statistic title="GPS" precision={2}
                                        value={(highLevelStatus.GpsQualityPercent ?? 0) * 100}
                                        suffix={"%"}/></Col>
         <Col lg={6} xs={12}><Statistic title="Battery" value={(highLevelStatus.BatteryPercent ?? 0) * 100}
                                        formatter={progressFormatter}/></Col>
         <Col lg={6} xs={12}>{highLevelStatus.IsCharging ?
-            <Statistic.Countdown title="Charging time left" format={"HH:mm"}
+            <Statistic.Countdown title="Charge ETA" format={"HH:mm"}
                                        value={estimateRemainingChargingTime()}/> :
-            <Statistic title="Charging time left" value="--:--"/>}
+            <Statistic title="Charge ETA" value="--:--"/>}
         </Col>
         <Col lg={6} xs={12}><Statistic title="Charging" value={highLevelStatus.IsCharging ? "Yes" : "No"}
                                        formatter={booleanFormatter}/></Col>
