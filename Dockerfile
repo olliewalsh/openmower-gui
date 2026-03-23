@@ -1,15 +1,15 @@
-FROM golang:1.21 as build-go
+FROM golang:1.21 AS build-go
 
 COPY . /app
 WORKDIR /app
 RUN CGO_ENABLED=0 go build -o openmower-gui
 
-FROM node:21 as build-web
+FROM node:21 AS build-web
 COPY ./web /web
 WORKDIR /web
-RUN yarn && yarn build
+RUN npm install -g yarn && yarn && yarn build
 
-FROM ubuntu:22.04 as deps
+FROM ubuntu:22.04 AS deps
 RUN apt-get update && apt-get install -y ca-certificates curl python3 python3-pip python3-venv libjim-dev\
                                       git build-essential unzip wget autoconf automake pkg-config texinfo libtool libftdi-dev libusb-1.0-0-dev
 RUN apt-get install -y rpi.gpio-common  || true
