@@ -1,7 +1,6 @@
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-import {COLORS} from "../theme/colors.ts";
 import {useApi} from "../hooks/useApi.ts";
-import {App, Button, Col, Input, Modal, Row, Slider, Typography} from "antd";
+import {App, Button, Col, Collapse, Input, InputNumber, Modal, Row} from "antd";
 import {useWS} from "../hooks/useWS.ts";
 import centroid from "@turf/centroid";
 import union from "@turf/union";
@@ -550,33 +549,7 @@ export const MapPage = () => {
             const areaType = firstDeleted?.properties?.feature_type as string;
             const coordinates = union(featureCollection(e.deletedFeatures));
 
-            if ((coordinates != null) && (coordinates.geometry.type=='Polygon')) {
-                const f ={
-                    id:'',
-                    properties: firstDeleted.properties,
-                    geometry: coordinates.geometry,
-                    type: "Feature"
-                } as Feature<Polygon>;
-
-                switch (areaType) {
-                    case 'workarea':
-                        addMowingArea(f);
-                        break;
-                    case 'navigation':
-                        addNavigationArea(f);
-                        break;
-                    case 'obstacle':
-                        addObstacle(f);
-                        break;
-                    default:
-                        notification.error({
-                            message: `Unknown type ${areaType}`
-                        })
-                        setFeatures({...features});//revert
-                        return;
-                }
-            }
-            else {
+            if ((coordinates == null) || (coordinates.geometry.type!='Polygon')) {
                 notification.error({
                     message: 'Unable to combine areas. Do they overlap?'
                 })
@@ -584,16 +557,66 @@ export const MapPage = () => {
                 return;
             }
 
+            const mergedFeature = {
+                id:'',
+                properties: firstDeleted.properties,
+                geometry: coordinates.geometry,
+                type: "Feature"
+            } as Feature<Polygon>;
+
+            // Perform delete + add in a single state update to avoid race conditions
             setFeatures(currFeatures => {
+                // First, remove deleted features
                 const newFeatures = {...currFeatures};
                 for (const f of e.deletedFeatures) {
                     delete newFeatures[f.id];
                 }
-    
-                sortFeatures(newFeatures)
+
+                // Then, add the merged feature
+                let type: string;
+                let constructFn: (id: string) => MowingFeatureBase | null;
+
+                switch (areaType) {
+                    case 'workarea':
+                        type = "area";
+                        constructFn = (id) => new MowingAreaFeature(id, mowingAreas.length + 1);
+                        break;
+                    case 'navigation':
+                        type = "navigation";
+                        constructFn = (id) => new NavigationFeature(id);
+                        break;
+                    case 'obstacle': {
+                        type = "area";
+                        const currentLayerCoordinates = mergedFeature.geometry.coordinates[0];
+                        const area = Object.values<MowingFeature>(newFeatures).find((f) => {
+                            if (!(f instanceof MowingAreaFeature)) return false;
+                            const areaCoordinates = f.geometry.coordinates[0];
+                            return inside(currentLayerCoordinates, areaCoordinates);
+                        });
+                        if (!area) {
+                            notification.info({ message: "Unable to match an area for this obstacle" });
+                            return features; // revert
+                        }
+                        constructFn = (id) => new ObstacleFeature(id, area as MowingAreaFeature);
+                        break;
+                    }
+                    default:
+                        notification.error({ message: `Unknown type ${areaType}` });
+                        return features; // revert
+                }
+
+                const id = getNewId(newFeatures, type, null, "area");
+                const nfeat = constructFn(id);
+                if (!nfeat) {
+                    return features; // revert
+                }
+                nfeat.setGeometry(mergedFeature.geometry);
+                newFeatures[id] = nfeat;
+
+                sortFeatures(newFeatures);
                 return newFeatures;
             });
-    },[addMowingArea, addNavigationArea, addObstacle, features, notification]);
+    },[features, inside, mowingAreas.length, notification]);
 
     function sortFeatures(tosort: Record<string, MowingFeature>,  curMowingAreaFeature: mowingAreaEdit|undefined = undefined) {
         /* sort the mowing areas by mowing order. If there is a duplicate decide the order based on the area (curMowingAreaFeature) that the user 
@@ -1154,57 +1177,6 @@ export const MapPage = () => {
                 </label>
             </Modal>
 
-            <Col span={24}>
-                <Typography.Title level={2}>Map</Typography.Title>
-                <Typography.Title level={5} style={{color: COLORS.danger}}>
-                    WARNING: Beta, please backup your map before use
-                </Typography.Title>
-            </Col>
-            
-            <Col span={24}>
-                <MowerActions>
-                    {!editMap && <Button size={"small"} key="btnEdit" type="primary" onClick={handleEditMap}
-                    >Edit Map</Button>}
-                    {editMap && <AsyncButton size={"small"} key="btnSave"  type="primary" onAsyncClick={handleSaveMap}
-                    >Save Map</AsyncButton>}
-                    {editMap && <Button size={"small"} key="btnCancel" onClick={handleEditMap}
-                    >Cancel Map Edition</Button>}
-                    {!editMap && 
-                    <AsyncDropDownButton size={"small"}  key="slctAreas"  menu={{
-                        items: mowingAreas,
-                        onAsyncClick: (e) => {
-                            const item = mowingAreas.find(item => item.key == e.key)                            
-                            return mowerAction("start_in_area", {
-                                area: item!!.feat?.properties?.index,
-                            })()
-                        }
-                    }}>Mow area</AsyncDropDownButton>}
-                    {!manualMode &&
-                        <AsyncButton size={"small"}  key="btnManualMode"  onAsyncClick={handleManualMode}
-                        >Manual mowing</AsyncButton>}
-                    {manualMode &&
-                        <AsyncButton size={"small"}  key="btnAutoMode"  onAsyncClick={handleStopManualMode}
-                        >Stop Manual Mowing</AsyncButton>}
-                    <Button size={"small"} key="btnBackup" onClick={handleBackupMap}
-                    >Backup Map</Button>
-                    <Button size={"small"} key="btnRestore" onClick={handleRestoreMap}
-                    >Restore Map</Button>
-                    <Button size={"small"} key="btnDownloadGeo" onClick={handleDownloadGeoJSON}
-                    >Download GeoJSON</Button>
-                    {editMap && <Button size={"small"} key="btnUploadGeo" onClick={handleUploadGeoJSON}>Upload GeoJSON</Button>}
-                </MowerActions>
-            </Col>
-           
-            <Col span={24}>
-                <Row>
-                    <Col span={12}>
-                        <Slider value={offsetX} onChange={handleOffsetX} min={-30} max={30} step={0.01}/>
-                    </Col>
-                    <Col span={12}>
-                        <Slider value={offsetY} onChange={handleOffsetY} min={-30} max={30} step={0.01}/>
-                    </Col>
-                </Row>
-            </Col>
             <Col span={24} style={{height: '70%'}}>
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
                                                          reuseMaps
@@ -1254,6 +1226,57 @@ export const MapPage = () => {
                     <div style={{position: "absolute", bottom: 30, right: 30, zIndex: 100}}>
                         <Joystick move={handleJoyMove} stop={handleJoyStop}/>
                     </div>}
+            </Col>
+            <Col span={24}>
+                <MowerActions>
+                    {!editMap && <Button size={"small"} key="btnEdit" type="primary" onClick={handleEditMap}
+                    >Edit Map</Button>}
+                    {editMap && <AsyncButton size={"small"} key="btnSave"  type="primary" onAsyncClick={handleSaveMap}
+                    >Save Map</AsyncButton>}
+                    {editMap && <Button size={"small"} key="btnCancel" onClick={handleEditMap}
+                    >Cancel Map Edition</Button>}
+                    {!editMap &&
+                    <AsyncDropDownButton size={"small"}  key="slctAreas"  menu={{
+                        items: mowingAreas,
+                        onAsyncClick: (e) => {
+                            const item = mowingAreas.find(item => item.key == e.key)
+                            return mowerAction("start_in_area", {
+                                area: item!!.feat?.properties?.index,
+                            })()
+                        }
+                    }}>Mow area</AsyncDropDownButton>}
+                    {!manualMode &&
+                        <AsyncButton size={"small"}  key="btnManualMode"  onAsyncClick={handleManualMode}
+                        >Manual mowing</AsyncButton>}
+                    {manualMode &&
+                        <AsyncButton size={"small"}  key="btnAutoMode"  onAsyncClick={handleStopManualMode}
+                        >Stop Manual Mowing</AsyncButton>}
+                    <Button size={"small"} key="btnBackup" onClick={handleBackupMap}
+                    >Backup Map</Button>
+                    <Button size={"small"} key="btnRestore" onClick={handleRestoreMap}
+                    >Restore Map</Button>
+                    <Button size={"small"} key="btnDownloadGeo" onClick={handleDownloadGeoJSON}
+                    >Download GeoJSON</Button>
+                    {editMap && <Button size={"small"} key="btnUploadGeo" onClick={handleUploadGeoJSON}>Upload GeoJSON</Button>}
+                </MowerActions>
+            </Col>
+            <Col span={24}>
+                <Collapse size="small" items={[{
+                    key: 'offsets',
+                    label: `Map Offset (X: ${offsetX}, Y: ${offsetY})`,
+                    children: (
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <label>Offset X</label>
+                                <InputNumber value={offsetX} onChange={(v) => handleOffsetX(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
+                            </Col>
+                            <Col span={12}>
+                                <label>Offset Y</label>
+                                <InputNumber value={offsetY} onChange={(v) => handleOffsetY(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
+                            </Col>
+                        </Row>
+                    ),
+                }]} />
             </Col>
         </Row>
     );
