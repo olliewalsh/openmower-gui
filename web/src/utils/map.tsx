@@ -34,3 +34,23 @@ export const itranspose = (offsetX: number, offsetY: number, datum: [number, num
     converter.LLtoUTM(y, x, coords)
     return [coords[0] - datum[0] - offsetX, coords[1] - datum[1] - offsetY]
 };
+
+/**
+ * Remove near-duplicate consecutive points caused by floating-point precision.
+ * Two points within `epsilon` meters are considered duplicates.
+ * Ported from openmower-app's dedupePoints bug fix.
+ */
+export function dedupePoints(points: { x: number; y: number; z: number }[], epsilon = 0.001): { x: number; y: number; z: number }[] {
+    if (points.length === 0) return points;
+    const result = [points[0]];
+    for (let i = 1; i < points.length; i++) {
+        const prev = result[result.length - 1];
+        const curr = points[i];
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        if (Math.sqrt(dx * dx + dy * dy) > epsilon) {
+            result.push(curr);
+        }
+    }
+    return result;
+}

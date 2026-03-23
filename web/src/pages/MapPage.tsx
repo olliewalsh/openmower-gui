@@ -1,64 +1,53 @@
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import {useApi} from "../hooks/useApi.ts";
-import {App, Button, Col, Collapse, Input, InputNumber, Modal, Row} from "antd";
+import {App, Col, Row} from "antd";
 import {useWS} from "../hooks/useWS.ts";
 import centroid from "@turf/centroid";
+import turfArea from "@turf/area";
 import union from "@turf/union";
 import {featureCollection} from "@turf/helpers"
 import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path, Twist} from "../types/ros.ts";
+import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path} from "../types/ros.ts";
 import DrawControl from "../components/DrawControl.tsx";
 import Map, {Layer, Source} from 'react-map-gl';
 import type mapboxgl from 'mapbox-gl';
 import type {Feature} from 'geojson';
 import {FeatureCollection, Polygon, Position} from "geojson";
-import {MowerActions, useMowerAction} from "../components/MowerActions.tsx";
+import {useMowerAction} from "../components/MowerActions.tsx";
 import {MowerMapMapArea,MowerReplaceMapSrvReq} from "../api/Api.ts";
-import AsyncButton from "../components/AsyncButton.tsx";
 import {MapStyle} from "./MapStyle.tsx";
-import {converter, drawLine, getQuaternionFromHeading, itranspose, transpose} from "../utils/map.tsx";
-import {Joystick} from "react-joystick-component";
+import {converter, dedupePoints, drawLine, getQuaternionFromHeading, itranspose, transpose} from "../utils/map.tsx";
 import {useHighLevelStatus} from "../hooks/useHighLevelStatus.ts";
-import {IJoystickUpdateEvent} from "react-joystick-component/build/lib/Joystick";
 import {useSettings} from "../hooks/useSettings.ts";
 import {useConfig} from "../hooks/useConfig.tsx";
 import {useEnv} from "../hooks/useEnv.tsx";
 import {Spinner} from "../components/Spinner.tsx";
-import AsyncDropDownButton from "../components/AsyncDropDownButton.tsx";
-import {MowingFeature, MowingAreaFeature, MowerFeatureBase, DockFeatureBase, MowingFeatureBase, LineFeatureBase, NavigationFeature, ObstacleFeature, ActivePathFeature, PathFeature } from "../types/map.ts";
-
-
-let offsetXTimeout: any = null;
-let offsetYTimeout: any = null;
-
-class mowingAreaEdit  {
-    id?: string;
-    name: string;
-    mowing_order: number;
-    orig_mowing_order: number;
-    index: number;
-    //feature?: MowingAreaFeature
-
-    constructor() {
-        this.name ='';
-        this.mowing_order = 9999;
-        this.orig_mowing_order = 9999;
-        this.index =-1;
-    }
-}
+import {MowingFeature, MowingAreaFeature, MowerFeatureBase, DockFeatureBase, MowingFeatureBase, LineFeatureBase, NavigationFeature, ObstacleFeature, ActivePathFeature, PathFeature} from "../types/map.ts";
+import {MowingAreaEdit} from "./map/utils/types.ts";
+import {useMapEditHistory} from "./map/hooks/useMapEditHistory.ts";
+import {useMapOffset} from "./map/hooks/useMapOffset.ts";
+import {useManualMode} from "./map/hooks/useManualMode.ts";
+import {NewAreaModal} from "./map/components/NewAreaModal.tsx";
+import {EditAreaModal} from "./map/components/EditAreaModal.tsx";
+import {AreasListPanel} from "./map/components/AreasListPanel.tsx";
+import {MapOffsetPanel} from "./map/components/MapOffsetPanel.tsx";
+import {MapToolbar} from "./map/components/MapToolbar.tsx";
+import {JoystickOverlay} from "./map/components/JoystickOverlay.tsx";
 
 
 export const MapPage = () => {
     const {notification} = App.useApp();
     const mowerAction = useMowerAction()
     const highLevelStatus = useHighLevelStatus()
-    const [offsetX, setOffsetX] = useState(0);
-    const [offsetY, setOffsetY] = useState(0);
     const [modalOpen, setModalOpen] = useState<boolean>(false)
     const [areaModelOpen, setAreaModelOpen] = useState<boolean>(false)
-    
+
+    // State for the "new area" creation modal
+    const [newAreaName, setNewAreaName] = useState<string>('')
+    const [newAreaType, setNewAreaType] = useState<'workarea' | 'navigation' | 'obstacle'>('workarea')
+
     const [currentFeature, setCurrentFeature] = useState<Feature | undefined>(undefined)
-    const [curMowingAreaFeature, setCurMowingAreaFeature] = useState<mowingAreaEdit>(new mowingAreaEdit())
+    const [curMowingAreaFeature, setCurMowingAreaFeature] = useState<MowingAreaEdit>(new MowingAreaEdit())
 
     const {settings} = useSettings()
     const [labelsCollection, setLabelsCollection] = useState<FeatureCollection>({
@@ -68,7 +57,6 @@ export const MapPage = () => {
     const {config, setConfig} = useConfig(["gui.map.offset.x", "gui.map.offset.y"])
     const envs = useEnv()
     const guiApi = useApi()
-    const [manualMode, setManualMode] = useState<number | undefined>()
     const [tileUri, setTileUri] = useState<string | undefined>()
     const [editMap, setEditMap] = useState<boolean>(false)
     const [features, setFeatures] = useState<Record<string, MowingFeature>>({});
@@ -76,8 +64,16 @@ export const MapPage = () => {
     const [map, setMap] = useState<MapType | undefined>(undefined)
     const [path, setPath] = useState<MarkerArray | undefined>(undefined)
     const [plan, setPlan] = useState<Path | undefined>(undefined)
+    const [useSatellite, setUseSatellite] = useState(true)
     const robotPoseRef = useRef<{ x: number; y: number; heading: number } | null>(null)
     const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+
+    // Extracted hooks
+    const {offsetX, offsetY, handleOffsetX, handleOffsetY} = useMapOffset({config, setConfig, notification});
+    const {
+        hasUnsavedChanges, setHasUnsavedChanges, handleEditMap,
+        handleUndo, handleRedo, historyIndex, editHistory,
+    } = useMapEditHistory({features, setFeatures, editMap, setEditMap});
     const [lidarCollection, setLidarCollection] = useState<GeoJSON.FeatureCollection>({
         type: "FeatureCollection",
         features: []
@@ -251,17 +247,6 @@ export const MapPage = () => {
     }, [envs]);
 
     useEffect(() => {
-        let offX = parseFloat(config["gui.map.offset.x"] ?? 0);
-        let offY = parseFloat(config["gui.map.offset.y"] ?? 0);
-        if (!isNaN(offX)) {
-            setOffsetX(offX)
-        }
-        if (!isNaN(offY)) {
-            setOffsetY(offY)
-        }
-    }, [config]);
-
-    useEffect(() => {
         if (editMap) {
             mapStream.stop()
             poseStream.stop()
@@ -329,7 +314,11 @@ export const MapPage = () => {
             }
             const centroidPt = centroid(feature);
             if (centroidPt.properties != null) {
-                centroidPt.properties.title = feature.getLabel();
+                const areaSqm = turfArea(feature);
+                const areaLabel = areaSqm >= 10000
+                    ? `${(areaSqm / 10000).toFixed(2)} ha`
+                    : `${areaSqm.toFixed(0)} m²`;
+                centroidPt.properties.title = feature.getLabel() + `\n${areaLabel}`;
                 centroidPt.properties.index = feature.getIndex()
             }
             centroidPt.id = feature.id
@@ -392,6 +381,39 @@ export const MapPage = () => {
                 feat: feat
             }]
         }))
+    }, [features]);
+
+    // Build the areas list for the sidebar panel
+    const areasList = useMemo(() => {
+        const polygons = Object.values(features).filter(
+            (f): f is MowingFeatureBase => f instanceof MowingFeatureBase
+        );
+        return polygons
+            .sort((a, b) => {
+                // workareas first, then navigation, then obstacles
+                const typeOrder: Record<string, number> = { workarea: 0, navigation: 1, obstacle: 2 };
+                const ta = typeOrder[a.properties.feature_type] ?? 3;
+                const tb = typeOrder[b.properties.feature_type] ?? 3;
+                if (ta !== tb) return ta - tb;
+                return (a.properties.mowing_order ?? 0) - (b.properties.mowing_order ?? 0);
+            })
+            .map((f) => {
+                const areaSqm = turfArea(f);
+                const areaLabel = areaSqm >= 10000
+                    ? `${(areaSqm / 10000).toFixed(2)} ha`
+                    : `${areaSqm.toFixed(0)} m²`;
+                const ftype = f.properties.feature_type;
+                let name = '';
+                if (f instanceof MowingAreaFeature) {
+                    name = f.getLabel();
+                } else if (f instanceof NavigationFeature) {
+                    name = `Navigation ${f.id}`;
+                } else if (f instanceof ObstacleFeature) {
+                    name = `Obstacle ${f.id}`;
+                }
+                const mowingOrder = f instanceof MowingAreaFeature ? f.getMowingOrder() : undefined;
+                return { id: f.id, name, ftype, areaLabel, mowingOrder };
+            });
     }, [features]);
 
     function buildFeatures(areas: MapArea[], type: string) : Record<string, MowingFeatureBase> {
@@ -476,12 +498,12 @@ export const MapPage = () => {
     }
 
 
-    function addArea<T extends MowingFeatureBase>(type: string, constructcb: (id: string) => T|null, new_feature: Feature<Polygon>|undefined=undefined) {
+    function addArea<T extends MowingFeatureBase>(type: string, component: string, constructcb: (id: string) => T|null, new_feature: Feature<Polygon>|undefined=undefined) {
          let f;
 
         if (new_feature== undefined)
             f = currentFeature;
-        else 
+        else
             f = new_feature;
 
         if (f == undefined) {
@@ -492,13 +514,13 @@ export const MapPage = () => {
             return;
 
         setFeatures(currFeatures => {
-            const id = getNewId(currFeatures, type, null, "area");
+            const id = getNewId(currFeatures, type, null, component);
             const nfeat =  constructcb(id);
             if (!nfeat) {
                 return features;
             }
             nfeat.setGeometry((f as Feature<Polygon>).geometry)
-            
+
             return {...currFeatures, [id]: nfeat};
         })
         setCurrentFeature(undefined)
@@ -508,7 +530,7 @@ export const MapPage = () => {
     function addObstacle(new_feature: Feature<Polygon>|undefined=undefined) {
 
 
-        addArea<ObstacleFeature>("area", (id) => {
+        addArea<ObstacleFeature>("area", "obstacle", (id) => {
             const currentLayerCoordinates = (currentFeature as Feature<Polygon>).geometry.coordinates[0]
             // find the area that contains the obstacle
             const area = Object.values<MowingFeature>(features).find((f) => {
@@ -529,30 +551,37 @@ export const MapPage = () => {
     }
 
     function addNavigationArea(new_feature: Feature<Polygon>|undefined=undefined) {
-        addArea<NavigationFeature>("navigation", (id) => {
+        addArea<NavigationFeature>("navigation", "area", (id) => {
             return  new NavigationFeature(id);
         }, new_feature);
     }
 
-    function addMowingArea(new_feature: Feature<Polygon>|undefined=undefined) {
-        addArea<NavigationFeature>("area", (id) => {
-            return  new MowingAreaFeature(id, mowingAreas.length+1);
-        }, new_feature);
+    function handleSaveNewArea() {
+        switch (newAreaType) {
+            case 'workarea':
+                // Set name after adding (addMowingArea resolves ID via setFeatures)
+                setFeatures(currFeatures => {
+                    const id = getNewId(currFeatures, "area", null, "area");
+                    const nfeat = new MowingAreaFeature(id, mowingAreas.length + 1);
+                    if (currentFeature && currentFeature.geometry.type === 'Polygon') {
+                        nfeat.setGeometry((currentFeature as Feature<Polygon>).geometry);
+                    }
+                    if (newAreaName.trim()) {
+                        nfeat.setName(newAreaName.trim());
+                    }
+                    return {...currFeatures, [id]: nfeat};
+                });
+                setCurrentFeature(undefined);
+                setModalOpen(false);
+                break;
+            case 'navigation':
+                addNavigationArea();
+                break;
+            case 'obstacle':
+                addObstacle();
+                break;
+        }
     }
-
-
-
-    function handleSaveMowingAreaClick() {
-        addMowingArea();
-    } 
-
-    function handleSaveNavigationAreaClick() {
-        addNavigationArea();
-    } 
-
-    function handleSaveObstacleClick() {
-        addObstacle();
-    } 
 
     const inside = (currentLayerCoordinates: Position[], areaCoordinates: Position[]) => {
         let inside = false;
@@ -588,6 +617,8 @@ export const MapPage = () => {
     const onCreate = useCallback((e: any) => {
         for (const f of e.features) {
             setCurrentFeature(f)
+            setNewAreaName('')
+            setNewAreaType('workarea')
             setModalOpen(true)
         }
     }, []);
@@ -675,7 +706,8 @@ export const MapPage = () => {
                         return features; // revert
                 }
 
-                const id = getNewId(newFeatures, type, null, "area");
+                const component = areaType === 'obstacle' ? 'obstacle' : 'area';
+                const id = getNewId(newFeatures, type, null, component);
                 const nfeat = constructFn(id);
                 if (!nfeat) {
                     return features; // revert
@@ -688,7 +720,7 @@ export const MapPage = () => {
             });
     },[features, inside, mowingAreas.length, notification]);
 
-    function sortFeatures(tosort: Record<string, MowingFeature>,  curMowingAreaFeature: mowingAreaEdit|undefined = undefined) {
+    function sortFeatures(tosort: Record<string, MowingFeature>,  curMowingAreaFeature: MowingAreaEdit|undefined = undefined) {
         /* sort the mowing areas by mowing order. If there is a duplicate decide the order based on the area (curMowingAreaFeature) that the user 
         added. */
         
@@ -778,7 +810,7 @@ export const MapPage = () => {
             , index         : feature.properties.index
             , name          : feature.properties.name
             , mowing_order  : feature.properties.mowing_order
-            , orig_mowing_order  : feature.properties.mowing_order} as mowingAreaEdit);
+            , orig_mowing_order  : feature.properties.mowing_order} as MowingAreaEdit);
 
         setAreaModelOpen(true);
     }, [notification]);
@@ -809,105 +841,95 @@ export const MapPage = () => {
         return [map_ne, map_sw, datum]
     }, [_datumLat, _datumLon, map, offsetX, offsetY])
 
-    function handleEditMap() {
-        setEditMap(!editMap)
-    }
-
-
     function cancelAreaModal() {
         setAreaModelOpen(false);
     }
 
     async function handleSaveMap() {
         const areas: Record<string, MowerMapMapArea[]> = {
-            "area":[],
-            "navigation":[],
+            "area": [],
+            "navigation": [],
         }
-        const sorted =  Object.values<MowingFeature>(features).sort((a: MowingFeature,b: MowingFeature): number => {
-            if ((a instanceof MowingFeatureBase) && (!(b instanceof MowingFeatureBase)))
-                return -1;
 
-            if ((b instanceof MowingFeatureBase) && (!(a instanceof MowingFeatureBase)))
-                return 1;
+        // Separate features by role: workareas/nav first, obstacles second
+        const areaFeatures: MowingFeatureBase[] = [];
+        const obstacleFeatures: ObstacleFeature[] = [];
 
-            if ((b instanceof MowingFeatureBase) && ((a instanceof MowingFeatureBase)))
-                return a.properties.mowing_order > b.properties.mowing_order ? 1 :-1;
-
-            return 0;
-        })
-
-
-        for (const [i,f] of Object.entries(sorted)) {
-            if (f instanceof MowingFeatureBase) {
-
-                const idDetails = f.id.split("-")
-                if (idDetails.length != 4) {
-                    if (console.error)
-                        console.error("Invalid id " + f.id);
-                    continue
-                }
-                const type = idDetails[0]
-
-                if (!areas[type])
-                    throw Error("Unable to find area type " + type);
-
-                let index = parseInt(i);
-                if (f instanceof ObstacleFeature)
-                    index = f.getMowingArea().getIndex();  
-                else {
-                    areas[type][index] = {
-                        name:  f.properties?.name ?? ''
-                    }
-                } 
-
-                const points = f.geometry.coordinates[0].map((point) => {
-                    return itranspose(offsetX, offsetY, datum, point[1], point[0])
-                });
-
-                
-       
-
-                if ((f instanceof MowingAreaFeature)||(f instanceof NavigationFeature))  {
-                    areas[type][index].area = {
-                    
-                        points: points.map((point) => {
-                            return {
-                                x: point[0],
-                                y: point[1],
-                                z: 0,
-                            }
-                        })
-                    }
-                } else if (f instanceof ObstacleFeature) {
-                    if (!areas[type][index])
-                        throw Error("Unable to find area " + index.toString());
-
-            
-                    areas[type][index].obstacles = [...(areas[type][index].obstacles ?? []), {
-                        points: points.map((point) => {
-                            return {
-                                x: point[0],
-                                y: point[1],
-                                z: 0,
-                            }
-                        })
-                    }]
-                }
+        for (const f of Object.values(features)) {
+            if (f instanceof ObstacleFeature) {
+                obstacleFeatures.push(f);
+            } else if (f instanceof MowingAreaFeature || f instanceof NavigationFeature) {
+                areaFeatures.push(f);
             }
         }
-     
 
-        const updateMsg : MowerReplaceMapSrvReq = {
-            areas : []
+        // Sort workareas by mowing_order, navigation areas come after
+        areaFeatures.sort((a, b) => {
+            // workareas before navigation
+            if (a instanceof MowingAreaFeature && !(b instanceof MowingAreaFeature)) return -1;
+            if (!(a instanceof MowingAreaFeature) && b instanceof MowingAreaFeature) return 1;
+            return (a.properties.mowing_order ?? 9999) - (b.properties.mowing_order ?? 9999);
+        });
+
+        // Track per-type index counters and map feature ID → index in areas array
+        const typeCounters: Record<string, number> = { "area": 0, "navigation": 0 };
+        const featureIndexMap: Record<string, { type: string; index: number }> = {};
+
+        for (const f of areaFeatures) {
+            const idDetails = f.id.split("-");
+            if (idDetails.length !== 4) {
+                console.error("Invalid id " + f.id);
+                continue;
+            }
+            const type = idDetails[0];
+            if (!areas[type]) {
+                console.error("Unknown area type " + type);
+                continue;
+            }
+
+            const index = typeCounters[type]++;
+            featureIndexMap[f.id] = { type, index };
+
+            const rawPoints = f.geometry.coordinates[0].map((point) => {
+                const p = itranspose(offsetX, offsetY, datum, point[1], point[0]);
+                return { x: p[0], y: p[1], z: 0 };
+            });
+            const points = dedupePoints(rawPoints);
+
+            areas[type][index] = {
+                name: f.properties?.name ?? '',
+                area: { points },
+            };
+        }
+
+        // Now process obstacles and attach them to their parent area
+        for (const f of obstacleFeatures) {
+            const parentArea = f.getMowingArea();
+            const parentMapping = featureIndexMap[parentArea.id];
+            if (!parentMapping) {
+                console.error("Obstacle " + f.id + " references unknown parent area " + parentArea.id);
+                continue;
+            }
+
+            const rawPoints = f.geometry.coordinates[0].map((point) => {
+                const p = itranspose(offsetX, offsetY, datum, point[1], point[0]);
+                return { x: p[0], y: p[1], z: 0 };
+            });
+            const points = dedupePoints(rawPoints);
+
+            const target = areas[parentMapping.type][parentMapping.index];
+            target.obstacles = [...(target.obstacles ?? []), { points }];
+        }
+
+        const updateMsg: MowerReplaceMapSrvReq = {
+            areas: []
         };
         for (const [type, areasOfType] of Object.entries(areas)) {
-            for (const [_, area] of Object.entries(areasOfType)) {
-                const narea = {
+            for (const area of areasOfType) {
+                updateMsg.areas.push({
                     area: area,
-                    isNavigationArea: type == "navigation",
-                };
-                updateMsg.areas.push(narea);
-
+                    isNavigationArea: type === "navigation",
+                });
             }
         }
         try {
@@ -915,6 +937,7 @@ export const MapPage = () => {
             notification.success({
                 message: "Area saved",
             })
+            setHasUnsavedChanges(false)
             setEditMap(false)
         } catch (e: any) {
             notification.error({
@@ -1098,154 +1121,29 @@ export const MapPage = () => {
         input.click();
     };
 
-    const handleManualMode = async () => {
-        await mowerAction(
-            "high_level_control",
-            {
-                Command: 3,
-            }
-        )()
-        setManualMode(setInterval(() => {
-            (async () => {
-                await mowerAction("mow_enabled", {MowEnabled: 1, MowDirection: 0})()
-            })()
-        }, 10000))
-    };
-
-    const handleStopManualMode = async () => {
-        await mowerAction(
-            "high_level_control",
-            {
-                Command: 2,
-            }
-        )()
-        clearInterval(manualMode)
-        setManualMode(undefined)
-        await mowerAction("mow_enabled", {MowEnabled: 0, MowDirection: 0})()
-    };
-
-    const handleJoyMove = (event: IJoystickUpdateEvent) => {
-        let newVar: Twist = {
-            Linear: {
-                X: event.y ?? 0,
-                Y: 0,
-                Z: 0
-            },
-            Angular: {
-                Z: (event.x ?? 0) * -1,
-                X: 0,
-                Y: 0
-            }
-        };
-        joyStream.sendJsonMessage(newVar)
-    };
-    const handleJoyStop = () => {
-        let newVar: Twist = {
-            Linear: {
-                X: 0,
-                Y: 0,
-                Z: 0
-            },
-            Angular: {
-                Z: 0,
-                X: 0,
-                Y: 0
-            }
-        };
-        joyStream.sendJsonMessage(newVar)
-    };
-
-    const handleOffsetX = (value: number) => {
-        if (offsetXTimeout != null) {
-            clearTimeout(offsetXTimeout)
-        }
-        offsetXTimeout = setTimeout(() => {
-            (async () => {
-                try {
-                    await setConfig({
-                        "gui.map.offset.x": value.toString(),
-                    })
-                } catch (e: any) {
-                    notification.error({
-                        message: "Failed to save offset",
-                        description: e.message,
-                    })
-                }
-            })()
-        }, 1000)
-        setOffsetX(value)
-    }
-    const handleOffsetY = (value: number) => {
-        if (offsetYTimeout != null) {
-            clearTimeout(offsetYTimeout)
-        }
-        offsetYTimeout = setTimeout(() => {
-            (async () => {
-                try {
-                    await setConfig({
-                        "gui.map.offset.y": value.toString(),
-                    })
-                } catch (e: any) {
-                    notification.error({
-                        message: "Failed to save offset",
-                        description: e.message,
-                    })
-                }
-            })()
-        }, 1000)
-        setOffsetY(value)
-    }
+    const {manualMode, handleManualMode, handleStopManualMode, handleJoyMove, handleJoyStop} = useManualMode({mowerAction, joyStream});
 
     if (_datumLon == 0 || _datumLat == 0) {
         return <Spinner/>
     }
     return (
         <Row gutter={[16, 16]} align={"top"} style={{height: '100%'}}>
-            <Modal
+            <NewAreaModal
                 open={modalOpen}
-                title={"Set the area type"}
-                footer={[
-                    <Button style={{paddingRight: 10}} key="mowing" type="primary" onClick={handleSaveMowingAreaClick}>
-                        Working area
-                    </Button>,
-                    <Button style={{paddingRight: 10}} key="navigation" onClick={handleSaveNavigationAreaClick}>
-                        Navigation area
-                    </Button>,
-                    <Button style={{paddingRight: 10}} key="obstacle" onClick={handleSaveObstacleClick}>
-                        Obstacle
-                    </Button>,
-                    <Button key="cancel" onClick={deleteFeature}>
-                        Cancel
-                    </Button>,
-                ]}
-                onOk={handleSaveMowingAreaClick}
+                areaType={newAreaType}
+                areaName={newAreaName}
+                onAreaTypeChange={setNewAreaType}
+                onAreaNameChange={setNewAreaName}
+                onSave={handleSaveNewArea}
                 onCancel={deleteFeature}
             />
-
-            <Modal
+            <EditAreaModal
                 open={areaModelOpen}
-                title={"Edit area properties of " + (curMowingAreaFeature.name)}
-                footer={[
-                    <Button style={{paddingRight: 10}} key="area" onClick={updateMowingArea}  type="primary">
-                        Save
-                    </Button>,
-                ]}
-                onCancel={cancelAreaModal}>
-                <label>
-                    Mowing order
-                    <Input style={{paddingRight: 10}} key="mowingorder" name="mowingorder" onChange={
-                        (e) => {setCurMowingAreaFeature({...curMowingAreaFeature, mowing_order:  parseInt(e.target.value)})}} value={ 
-                            curMowingAreaFeature.mowing_order
-                            }/>
-                </label>
-                <label>
-                    Area Name
-                    <Input style={{paddingRight: 10}} key="areaname" name="areaname" onChange={
-                        (e) => {setCurMowingAreaFeature({...curMowingAreaFeature, name:  e.target.value})}} value={ 
-                            curMowingAreaFeature.name
-                            } placeholder="Name of the area"/>
-                </label>
-            </Modal>
+                area={curMowingAreaFeature}
+                onChange={setCurMowingAreaFeature}
+                onSave={updateMowingArea}
+                onCancel={cancelAreaModal}
+            />
 
             <Col span={24} style={{height: '70%'}}>
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
@@ -1259,7 +1157,7 @@ export const MapPage = () => {
                                                              bounds: [{lng: map_sw[0], lat: map_sw[1]}, {lng: map_ne[0], lat: map_ne[1]}],
                                                          }}
                                                          style={{width: '100%', height: '100%'}}
-                                                         mapStyle={"mapbox://styles/mapbox/satellite-streets-v12"}
+                                                         mapStyle={useSatellite ? "mapbox://styles/mapbox/satellite-streets-v12" : "mapbox://styles/mapbox/dark-v11"}
                                                          onLoad={(e) => { mapInstanceRef.current = e.target as mapboxgl.Map }}
                 >
                     {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
@@ -1271,7 +1169,9 @@ export const MapPage = () => {
                         "text-allow-overlap": true,
                         "text-anchor": "top"
                     }} paint={{
-                        "text-color": "black",
+                        "text-color": "#ffffff",
+                        "text-halo-color": "rgba(0, 0, 0, 0.8)",
+                        "text-halo-width": 1.5,
                     }}/>
                     <DrawControl
                         styles={MapStyle}
@@ -1305,61 +1205,50 @@ export const MapPage = () => {
                         }}/>
                     </Source>
                 </Map> : <Spinner/>}
-                {highLevelStatus.highLevelStatus.StateName === "AREA_RECORDING" &&
-                    <div style={{position: "absolute", bottom: 30, right: 30, zIndex: 100}}>
-                        <Joystick move={handleJoyMove} stop={handleJoyStop}/>
-                    </div>}
+                <JoystickOverlay
+                    visible={highLevelStatus.highLevelStatus.StateName === "AREA_RECORDING"}
+                    onMove={handleJoyMove}
+                    onStop={handleJoyStop}
+                />
             </Col>
             <Col span={24}>
-                <MowerActions>
-                    {!editMap && <Button size={"small"} key="btnEdit" type="primary" onClick={handleEditMap}
-                    >Edit Map</Button>}
-                    {editMap && <AsyncButton size={"small"} key="btnSave"  type="primary" onAsyncClick={handleSaveMap}
-                    >Save Map</AsyncButton>}
-                    {editMap && <Button size={"small"} key="btnCancel" onClick={handleEditMap}
-                    >Cancel Map Edition</Button>}
-                    {!editMap &&
-                    <AsyncDropDownButton size={"small"}  key="slctAreas"  menu={{
-                        items: mowingAreas,
-                        onAsyncClick: (e) => {
-                            const item = mowingAreas.find(item => item.key == e.key)
-                            return mowerAction("start_in_area", {
-                                area: item!!.feat?.properties?.index,
-                            })()
-                        }
-                    }}>Mow area</AsyncDropDownButton>}
-                    {!manualMode &&
-                        <AsyncButton size={"small"}  key="btnManualMode"  onAsyncClick={handleManualMode}
-                        >Manual mowing</AsyncButton>}
-                    {manualMode &&
-                        <AsyncButton size={"small"}  key="btnAutoMode"  onAsyncClick={handleStopManualMode}
-                        >Stop Manual Mowing</AsyncButton>}
-                    <Button size={"small"} key="btnBackup" onClick={handleBackupMap}
-                    >Backup Map</Button>
-                    <Button size={"small"} key="btnRestore" onClick={handleRestoreMap}
-                    >Restore Map</Button>
-                    <Button size={"small"} key="btnDownloadGeo" onClick={handleDownloadGeoJSON}
-                    >Download GeoJSON</Button>
-                    {editMap && <Button size={"small"} key="btnUploadGeo" onClick={handleUploadGeoJSON}>Upload GeoJSON</Button>}
-                </MowerActions>
+                <MapToolbar
+                    editMap={editMap}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    manualMode={manualMode}
+                    useSatellite={useSatellite}
+                    historyIndex={historyIndex}
+                    editHistoryLength={editHistory.length}
+                    mowingAreas={mowingAreas}
+                    onEditMap={handleEditMap}
+                    onSaveMap={handleSaveMap}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    onToggleSatellite={() => setUseSatellite(!useSatellite)}
+                    onManualMode={handleManualMode}
+                    onStopManualMode={handleStopManualMode}
+                    onBackupMap={handleBackupMap}
+                    onRestoreMap={handleRestoreMap}
+                    onDownloadGeoJSON={handleDownloadGeoJSON}
+                    onUploadGeoJSON={handleUploadGeoJSON}
+                    onMowArea={(key) => {
+                        const item = mowingAreas.find(item => item.key == key)
+                        return mowerAction("start_in_area", {
+                            area: item?.feat?.properties?.index,
+                        })()
+                    }}
+                />
             </Col>
             <Col span={24}>
-                <Collapse size="small" items={[{
-                    key: 'offsets',
-                    label: `Map Offset (X: ${offsetX}, Y: ${offsetY})`,
-                    children: (
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <label>Offset X</label>
-                                <InputNumber value={offsetX} onChange={(v) => handleOffsetX(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
-                            </Col>
-                            <Col span={12}>
-                                <label>Offset Y</label>
-                                <InputNumber value={offsetY} onChange={(v) => handleOffsetY(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
-                            </Col>
-                        </Row>
-                    ),
-                }]} />
+                <AreasListPanel areas={areasList}/>
+            </Col>
+            <Col span={24}>
+                <MapOffsetPanel
+                    offsetX={offsetX}
+                    offsetY={offsetY}
+                    onChangeX={handleOffsetX}
+                    onChangeY={handleOffsetY}
+                />
             </Col>
         </Row>
     );
