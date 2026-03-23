@@ -1,5 +1,5 @@
-// eslint-disable-next-line import/order
-import './wdyr';
+// wdyr disabled — @welldone-software/why-did-you-render UMD build incompatible with Vite 8 + React 19
+// import './wdyr';
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {createHashRouter, RouterProvider,} from "react-router-dom";

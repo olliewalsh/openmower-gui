@@ -1,5 +1,8 @@
-import useWebSocket from "react-use-websocket";
+import reactUseWebSocketModule from "react-use-websocket";
 import {useState} from "react";
+
+// Vite 8 CJS interop may wrap the default export differently at runtime
+const useWebSocket = (reactUseWebSocketModule as unknown as { default: typeof reactUseWebSocketModule }).default ?? reactUseWebSocketModule;
 
 export const useWS = <T>(onError: (e: Error) => void, onInfo: (msg: string) => void, onData: (data: T, first?: boolean) => void) => {
     const [uri, setUri] = useState<string | null>(null);
@@ -18,7 +21,7 @@ export const useWS = <T>(onError: (e: Error) => void, onInfo: (msg: string) => v
             console.log(`Stream closed ${uri}`)
             onError(new Error(`Stream closed`))
         },
-        onMessage: (e) => {
+        onMessage: (e: MessageEvent) => {
             if (first) {
                 setFirst(false)
             }
