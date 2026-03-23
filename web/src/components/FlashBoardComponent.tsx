@@ -270,6 +270,10 @@ export const FlashBoardComponent = (props: { onNext: () => void }) => {
                                 value: "PANEL_TYPE_YARDFORCE_LUV1000RI"
                             },
                             {
+                                label: "YardForce 500B Classic",
+                                value: "PANEL_TYPE_YARDFORCE_500B_CLASSIC"
+                            },
+                            {
                                 label: "YardForce 900 ECO",
                                 value: "PANEL_TYPE_YARDFORCE_900_ECO"
                             }

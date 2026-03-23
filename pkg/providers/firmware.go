@@ -113,7 +113,14 @@ func (fp *FirmwareProvider) flashMowgli(writer io.Writer, config types.FirmwareC
 	_, _ = writer.Write([]byte("------> board.h built\n"))
 	//Build firmware
 	_, _ = writer.Write([]byte("------> Building and uploading firmware...\n"))
-	cmd := execabs.Command("/bin/bash", "-c", "platformio run -t upload")
+	pioEnv := "Yardforce500"
+	switch config.BoardType {
+	case "BOARD_YARDFORCE500B":
+		pioEnv = "Yardforce500B"
+	case "BOARD_LUV1000RI":
+		pioEnv = "LUV1000RI"
+	}
+	cmd := execabs.Command("/bin/bash", "-c", "platformio run -e "+pioEnv+" -t upload")
 	cmd.Dir = os.TempDir() + "/mowgli/stm32/ros_usbnode"
 	cmd.Stdout = writer
 	cmd.Stderr = writer
