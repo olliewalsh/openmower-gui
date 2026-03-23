@@ -1,6 +1,6 @@
 import {App, Button, Card, Checkbox, Col, Row, Switch, TimePicker, InputNumber, Table, Space, Popconfirm} from "antd";
 import {ClockCircleOutlined, DeleteOutlined, PlusOutlined} from "@ant-design/icons";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {useApi} from "../hooks/useApi.ts";
 import dayjs from "dayjs";
 
@@ -21,6 +21,7 @@ export const SchedulePage = () => {
     const {notification} = App.useApp();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [loading, setLoading] = useState(false);
+    const fetchedRef = useRef(false);
 
     const fetchSchedules = useCallback(async () => {
         try {
@@ -36,6 +37,8 @@ export const SchedulePage = () => {
     }, [guiApi, notification]);
 
     useEffect(() => {
+        if (fetchedRef.current) return;
+        fetchedRef.current = true;
         fetchSchedules();
     }, [fetchSchedules]);
 
@@ -181,7 +184,7 @@ export const SchedulePage = () => {
                             loading={loading}
                             size="small"
                         >
-                            Add Schedule
+                            Add
                         </Button>
                     }
                 >
@@ -191,7 +194,8 @@ export const SchedulePage = () => {
                         rowKey="id"
                         pagination={false}
                         size="small"
-                        locale={{emptyText: "No schedules configured. Click 'Add Schedule' to create one."}}
+                        scroll={{x: 600}}
+                        locale={{emptyText: "No schedules configured. Click 'Add' to create one."}}
                     />
                 </Card>
             </Col>

@@ -38,8 +38,11 @@ export function HighLevelStatusComponent() {
                                        suffix={"%"}/></Col>
         <Col lg={6} xs={12}><Statistic title="Battery" value={(highLevelStatus.BatteryPercent ?? 0) * 100}
                                        formatter={progressFormatter}/></Col>
-        <Col lg={6} xs={12}><Statistic.Countdown title="Charging time left" format={"HH:mm"}
-                                       value={highLevelStatus.IsCharging ? estimateRemainingChargingTime() : "-"}/></Col>
+        <Col lg={6} xs={12}>{highLevelStatus.IsCharging ?
+            <Statistic.Countdown title="Charging time left" format={"HH:mm"}
+                                       value={estimateRemainingChargingTime()}/> :
+            <Statistic title="Charging time left" value="--:--"/>}
+        </Col>
         <Col lg={6} xs={12}><Statistic title="Charging" value={highLevelStatus.IsCharging ? "Yes" : "No"}
                                        formatter={booleanFormatter}/></Col>
         <Col lg={6} xs={12}><Statistic title="Emergency" value={highLevelStatus.Emergency ? "Yes" : "No"}
