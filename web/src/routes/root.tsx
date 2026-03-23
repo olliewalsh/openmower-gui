@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import {useCallback, useEffect, useState} from "react";
 import {MowerStatus} from "../components/MowerStatus.tsx";
+import {useIsMobile} from "../hooks/useIsMobile";
 import {COLORS} from "../theme/colors.ts";
 
 const menuItems: MenuProps['items'] = [
@@ -41,21 +42,6 @@ const pageTitles: Record<string, string> = {
     '/logs': 'Logs',
 };
 
-const MOBILE_BREAKPOINT = 768;
-
-function useIsMobile() {
-    const [isMobile, setIsMobile] = useState(
-        typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
-    );
-    useEffect(() => {
-        const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-        mql.addEventListener('change', handler);
-        setIsMobile(mql.matches);
-        return () => mql.removeEventListener('change', handler);
-    }, []);
-    return isMobile;
-}
 
 export default function Root() {
     const route = useMatches();

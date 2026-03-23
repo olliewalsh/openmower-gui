@@ -64,7 +64,7 @@ export default function DrawControl(props: DrawControlProps) {
     // Uses a delayed sync to handle React StrictMode's mount/unmount/remount cycle,
     // which causes useControl to remove and re-add the control (wiping its internal store).
     // By deferring, we ensure we write to the final, mounted instance.
-    const syncTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const syncTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const prevFeaturesKeyRef = useRef<string>('');
     useEffect(() => {
         if (!mp || !features) return;

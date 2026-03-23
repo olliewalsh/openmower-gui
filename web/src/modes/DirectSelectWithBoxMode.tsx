@@ -77,8 +77,10 @@ DirectSelectWithBoxMode.pathsToCoordinates = function (featureId: any, paths: an
 };
 
 DirectSelectWithBoxMode.onFeature = function (state: any, e: any) {
-  // Require Ctrl/Cmd key to drag the entire area (prevents accidental moves)
-  if (state.selectedCoordPaths.length === 0 && (e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
+  const isTouch = e.originalEvent instanceof TouchEvent;
+  // Require Ctrl/Cmd key to drag the entire area on desktop (prevents accidental moves).
+  // On touch devices, allow dragging without modifier since there's no keyboard.
+  if (state.selectedCoordPaths.length === 0 && (isTouch || e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
     this.startDragging(state, e);
   } else {
     this.stopDragging(state);
@@ -305,6 +307,7 @@ DirectSelectWithBoxMode.onTap = function (state: any, e: any) {
   if (noTarget(e)) return this.clickNoTarget(state, e);
   if (isActiveFeature(e)) return this.clickActiveFeature(state, e);
   if (isInactiveFeature(e)) return this.clickInactive(state, e);
+  if (isVertex(e)) return this.onVertex(state, e);
 };
 
 DirectSelectWithBoxMode.onMouseUp = DirectSelectWithBoxMode.onTouchEnd = function (state: any, e: any) {

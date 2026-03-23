@@ -32,11 +32,14 @@ import {EditAreaModal} from "./map/components/EditAreaModal.tsx";
 import {AreasListPanel} from "./map/components/AreasListPanel.tsx";
 import {MapOffsetPanel} from "./map/components/MapOffsetPanel.tsx";
 import {MapToolbar} from "./map/components/MapToolbar.tsx";
+import {MapToolbarMobile} from "./map/components/MapToolbarMobile.tsx";
 import {JoystickOverlay} from "./map/components/JoystickOverlay.tsx";
+import {useIsMobile} from "../hooks/useIsMobile.ts";
 
 
 export const MapPage = () => {
     const {notification} = App.useApp();
+    const isMobile = useIsMobile();
     const mowerAction = useMowerAction()
     const highLevelStatus = useHighLevelStatus()
     const [modalOpen, setModalOpen] = useState<boolean>(false)
@@ -1216,7 +1219,7 @@ export const MapPage = () => {
                 onCancel={cancelAreaModal}
             />
 
-            <Col span={24} style={{height: '70%'}}>
+            <Col span={24} style={{height: isMobile ? '100%' : '70%', position: 'relative'}}>
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
                                                          reuseMaps
                                                          antialias
@@ -1235,7 +1238,7 @@ export const MapPage = () => {
                     {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}
                     <Source type={"geojson"} id={"labels"} data={labelsCollection}/>
                     <Layer type={"symbol"} id={"mower"} source={"labels"} layout={{
-                        "text-field": ['get', 'title'], //This will get "t" property from your geojson
+                        "text-field": ['get', 'title'],
                         "text-rotation-alignment": "auto",
                         "text-allow-overlap": true,
                         "text-anchor": "top"
@@ -1279,51 +1282,96 @@ export const MapPage = () => {
                     onMove={handleJoyMove}
                     onStop={handleJoyStop}
                 />
+                {isMobile && (
+                    <MapToolbarMobile
+                        editMap={editMap}
+                        hasUnsavedChanges={hasUnsavedChanges}
+                        manualMode={manualMode}
+                        useSatellite={useSatellite}
+                        historyIndex={historyIndex}
+                        editHistoryLength={editHistory.length}
+                        mowingAreas={mowingAreas}
+                        selectedFeatureCount={selectedFeatureIds.length}
+                        onEditMap={handleEditMap}
+                        onEditSelectedFeature={handleEditSelectedFeature}
+                        onDrawPolygon={handleDrawPolygon}
+                        onTrash={handleTrash}
+                        onCombine={handleCombine}
+                        onSaveMap={handleSaveMap}
+                        onUndo={handleUndo}
+                        onRedo={handleRedo}
+                        onToggleSatellite={() => setUseSatellite(!useSatellite)}
+                        onManualMode={handleManualMode}
+                        onStopManualMode={handleStopManualMode}
+                        onBackupMap={handleBackupMap}
+                        onRestoreMap={handleRestoreMap}
+                        onDownloadGeoJSON={handleDownloadGeoJSON}
+                        onUploadGeoJSON={handleUploadGeoJSON}
+                        onMowArea={(key) => {
+                            const item = mowingAreas.find(item => item.key == key)
+                            return mowerAction("start_in_area", {
+                                area: item?.feat?.properties?.index,
+                            })()
+                        }}
+                        stateName={highLevelStatus.highLevelStatus.StateName}
+                        emergency={highLevelStatus.highLevelStatus.Emergency}
+                        onStart={mowerAction("high_level_control", {Command: 1})}
+                        onHome={mowerAction("high_level_control", {Command: 2})}
+                        onEmergencyOn={mowerAction("emergency", {Emergency: 1})}
+                        onEmergencyOff={mowerAction("emergency", {Emergency: 0})}
+                    />
+                )}
             </Col>
-            <Col span={24}>
-                <MapToolbar
-                    editMap={editMap}
-                    hasUnsavedChanges={hasUnsavedChanges}
-                    manualMode={manualMode}
-                    useSatellite={useSatellite}
-                    historyIndex={historyIndex}
-                    editHistoryLength={editHistory.length}
-                    mowingAreas={mowingAreas}
-                    selectedFeatureCount={selectedFeatureIds.length}
-                    onEditMap={handleEditMap}
-                    onEditSelectedFeature={handleEditSelectedFeature}
-                    onDrawPolygon={handleDrawPolygon}
-                    onTrash={handleTrash}
-                    onCombine={handleCombine}
-                    onSaveMap={handleSaveMap}
-                    onUndo={handleUndo}
-                    onRedo={handleRedo}
-                    onToggleSatellite={() => setUseSatellite(!useSatellite)}
-                    onManualMode={handleManualMode}
-                    onStopManualMode={handleStopManualMode}
-                    onBackupMap={handleBackupMap}
-                    onRestoreMap={handleRestoreMap}
-                    onDownloadGeoJSON={handleDownloadGeoJSON}
-                    onUploadGeoJSON={handleUploadGeoJSON}
-                    onMowArea={(key) => {
-                        const item = mowingAreas.find(item => item.key == key)
-                        return mowerAction("start_in_area", {
-                            area: item?.feat?.properties?.index,
-                        })()
-                    }}
-                />
-            </Col>
-            <Col span={24}>
-                <AreasListPanel areas={areasList}/>
-            </Col>
-            <Col span={24}>
-                <MapOffsetPanel
-                    offsetX={offsetX}
-                    offsetY={offsetY}
-                    onChangeX={handleOffsetX}
-                    onChangeY={handleOffsetY}
-                />
-            </Col>
+            {!isMobile && (
+                <Col span={24}>
+                    <MapToolbar
+                        editMap={editMap}
+                        hasUnsavedChanges={hasUnsavedChanges}
+                        manualMode={manualMode}
+                        useSatellite={useSatellite}
+                        historyIndex={historyIndex}
+                        editHistoryLength={editHistory.length}
+                        mowingAreas={mowingAreas}
+                        selectedFeatureCount={selectedFeatureIds.length}
+                        onEditMap={handleEditMap}
+                        onEditSelectedFeature={handleEditSelectedFeature}
+                        onDrawPolygon={handleDrawPolygon}
+                        onTrash={handleTrash}
+                        onCombine={handleCombine}
+                        onSaveMap={handleSaveMap}
+                        onUndo={handleUndo}
+                        onRedo={handleRedo}
+                        onToggleSatellite={() => setUseSatellite(!useSatellite)}
+                        onManualMode={handleManualMode}
+                        onStopManualMode={handleStopManualMode}
+                        onBackupMap={handleBackupMap}
+                        onRestoreMap={handleRestoreMap}
+                        onDownloadGeoJSON={handleDownloadGeoJSON}
+                        onUploadGeoJSON={handleUploadGeoJSON}
+                        onMowArea={(key) => {
+                            const item = mowingAreas.find(item => item.key == key)
+                            return mowerAction("start_in_area", {
+                                area: item?.feat?.properties?.index,
+                            })()
+                        }}
+                    />
+                </Col>
+            )}
+            {!isMobile && (
+                <Col span={24}>
+                    <AreasListPanel areas={areasList}/>
+                </Col>
+            )}
+            {!isMobile && (
+                <Col span={24}>
+                    <MapOffsetPanel
+                        offsetX={offsetX}
+                        offsetY={offsetY}
+                        onChangeX={handleOffsetX}
+                        onChangeY={handleOffsetY}
+                    />
+                </Col>
+            )}
         </Row>
     );
 }
