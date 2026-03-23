@@ -9,8 +9,8 @@ import {featureCollection} from "@turf/helpers"
 import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path} from "../types/ros.ts";
 import DrawControl from "../components/DrawControl.tsx";
-import Map, {Layer, Source} from 'react-map-gl';
-import type mapboxgl from 'mapbox-gl';
+import Map, {Layer, Source} from 'react-map-gl/mapbox';
+import type {Map as MapboxMap} from 'mapbox-gl';
 import type {Feature} from 'geojson';
 import {FeatureCollection, Polygon, Position} from "geojson";
 import {useMowerAction} from "../components/MowerActions.tsx";
@@ -66,7 +66,7 @@ export const MapPage = () => {
     const [plan, setPlan] = useState<Path | undefined>(undefined)
     const [useSatellite, setUseSatellite] = useState(true)
     const robotPoseRef = useRef<{ x: number; y: number; heading: number } | null>(null)
-    const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+    const mapInstanceRef = useRef<MapboxMap | null>(null)
 
     // Extracted hooks
     const {offsetX, offsetY, handleOffsetX, handleOffsetY} = useMapOffset({config, setConfig, notification});
@@ -1158,7 +1158,7 @@ export const MapPage = () => {
                                                          }}
                                                          style={{width: '100%', height: '100%'}}
                                                          mapStyle={useSatellite ? "mapbox://styles/mapbox/satellite-streets-v12" : "mapbox://styles/mapbox/dark-v11"}
-                                                         onLoad={(e) => { mapInstanceRef.current = e.target as mapboxgl.Map }}
+                                                         onLoad={(e) => { mapInstanceRef.current = e.target as unknown as MapboxMap }}
                 >
                     {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
                     {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}

@@ -1,20 +1,21 @@
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
-import type {ControlPosition} from 'react-map-gl';
-import {useControl} from 'react-map-gl';
+import type {ControlPosition} from 'mapbox-gl';
+import {useControl} from 'react-map-gl/mapbox';
+import type {MapRef} from 'react-map-gl/mapbox';
 import {useEffect} from "react";
 import DirectSelectWithBoxMode from '../modes/DirectSelectWithBoxMode';
 
 type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
     position?: ControlPosition;
-    features?: any[];
+    features?: GeoJSON.Feature[];
     editMode?: boolean;
 
-    onCreate: (evt: any) => void;
-    onUpdate: (evt: any) => void;
-    onCombine: (evt: any) => void;
-    onDelete: (evt: any) => void;
-    onSelectionChange: (evt: any) => void;
-    onOpenDetails: (evt: any) => void;
+    onCreate: (evt: { features: GeoJSON.Feature[] }) => void;
+    onUpdate: (evt: { features: GeoJSON.Feature[]; action: string }) => void;
+    onCombine: (evt: { createdFeatures: GeoJSON.Feature[]; deletedFeatures: GeoJSON.Feature[] }) => void;
+    onDelete: (evt: { features: GeoJSON.Feature[] }) => void;
+    onSelectionChange: (evt: { features: GeoJSON.Feature[] }) => void;
+    onOpenDetails: (evt: { features: GeoJSON.Feature[] }) => void;
 };
 
 export default function DrawControl(props: DrawControlProps) {
@@ -26,7 +27,7 @@ export default function DrawControl(props: DrawControlProps) {
                 direct_select: DirectSelectWithBoxMode
             }
         }),
-        ({ map }) => {
+        ({map}: {map: MapRef}) => {
             map.on('draw.create', props.onCreate);
             map.on('draw.update', props.onUpdate);
             map.on('draw.combine', props.onCombine);
@@ -34,7 +35,7 @@ export default function DrawControl(props: DrawControlProps) {
             map.on('draw.selectionchange', props.onSelectionChange);
             map.on('feature.open', props.onOpenDetails);
         },
-        ({map}) => {
+        ({map}: {map: MapRef}) => {
             map.off('draw.create', props.onCreate);
             map.off('draw.update', props.onUpdate);
             map.off('draw.combine', props.onCombine);
@@ -70,16 +71,10 @@ export default function DrawControl(props: DrawControlProps) {
 }
 
 DrawControl.defaultProps = {
-    onCreate: () => {
-    },
-    onUpdate: () => {
-    },
-    onDelete: () => {
-    },
-    onCombine: () => {
-    },
-    onSelectionChange: () => {
-    },
-    onOpenDetails: () => {
-    },
+    onCreate: () => {},
+    onUpdate: () => {},
+    onDelete: () => {},
+    onCombine: () => {},
+    onSelectionChange: () => {},
+    onOpenDetails: () => {},
 };

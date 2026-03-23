@@ -3,16 +3,14 @@ import * as React from "react";
 
 
 export const AsyncButton: React.FC<ButtonProps & {
-    onAsyncClick: (event: React.MouseEvent<HTMLAnchorElement> & React.MouseEvent<HTMLButtonElement>) => Promise<any>
+    onAsyncClick: (event: React.MouseEvent) => Promise<any>
 }> = (props) => {
 
     const {notification} = App.useApp();
     const {onAsyncClick, ...rest} = props;
     const [loading, setLoading] = React.useState(false)
-    const handleClick = (event: React.MouseEvent<HTMLAnchorElement> & React.MouseEvent<HTMLButtonElement>) => {
-        if (props.onChange !== undefined) {
-            props.onChange(event)
-        } else if (onAsyncClick !== undefined) {
+    const handleClick = (event: React.MouseEvent) => {
+        if (onAsyncClick !== undefined) {
             setLoading(true)
             onAsyncClick(event).then(() => {
                 setLoading(false)

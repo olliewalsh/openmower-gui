@@ -4,13 +4,17 @@ import {MapArea, Point32} from "../types/ros.ts";
 
 import {transpose} from "../utils/map.tsx";
 
-export class MowingFeature {
+export class MowingFeature implements Feature {
     id: string;
     type: 'Feature';
+    geometry: Polygon | Point | LineString;
+    properties: Record<string, unknown>;
 
     constructor(id: string) {
         this.type = 'Feature';
         this.id = id;
+        this.geometry = {type: 'Point', coordinates: [0, 0]};
+        this.properties = {};
     }
 }
 

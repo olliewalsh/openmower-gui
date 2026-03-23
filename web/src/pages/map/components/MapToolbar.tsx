@@ -1,13 +1,12 @@
 import {Button, Tooltip} from "antd";
+import type {MenuItemType} from "antd/es/menu/interface";
 import {UndoOutlined, RedoOutlined, GlobalOutlined} from "@ant-design/icons";
 import {MowerActions} from "../../../components/MowerActions.tsx";
 import AsyncButton from "../../../components/AsyncButton.tsx";
 import AsyncDropDownButton from "../../../components/AsyncDropDownButton.tsx";
 import type {Feature} from "geojson";
 
-interface MowingAreaItem {
-    key: string;
-    label: string;
+interface MowingAreaItem extends MenuItemType {
     feat: Feature;
 }
 
