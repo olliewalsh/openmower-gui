@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "generate:api": "swagger-typescript-api -p ../docs/swagger.json -o src/api"
   },
   "dependencies": {
@@ -37,6 +39,10 @@
     "usng.js": "^0.4.5"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.183.1",
@@ -47,9 +53,11 @@
     "eslint": "^9.28.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "jsdom": "^29.0.1",
     "swagger-typescript-api": "^13.6.5",
     "typescript": "^5.9.3",
-    "vite": "^8.0.2"
+    "vite": "^8.0.2",
+    "vitest": "^4.1.1"
   },
   "resolutions": {
     "**/@formily/core": "2.3.1",

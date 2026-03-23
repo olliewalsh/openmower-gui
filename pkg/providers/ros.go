@@ -519,9 +519,9 @@ type jsonMapPoint struct {
 
 // jsonMapArea represents an area in the JSON map format
 type jsonMapArea struct {
-	ID         string            `json:"id"`
+	ID         string                 `json:"id"`
 	Properties map[string]interface{} `json:"properties"`
-	Outline    []jsonMapPoint    `json:"outline"`
+	Outline    []jsonMapPoint         `json:"outline"`
 }
 
 // jsonDockingStation represents a docking station in the JSON map format
@@ -552,26 +552,56 @@ func (p *RosProvider) jsonMapHandler(msg *std_msgs.String) {
 	minX, minY := math.MaxFloat64, math.MaxFloat64
 	maxX, maxY := -math.MaxFloat64, -math.MaxFloat64
 
+	// The JSON areas are flat: mow/nav/obstacle entries in order.
+	// Obstacles follow their parent mowing area (implicit ordering from mower_map_service).
+	// We need to reconstruct the nested structure the frontend expects.
+	var lastMowIndex int = -1
+
 	for _, area := range mapData.Areas {
-		var mapArea xbot_msgs.MapArea
-		if name, ok := area.Properties["name"].(string); ok {
-			mapArea.Name = name
+		areaType, _ := area.Properties["type"].(string)
+
+		outlineToPolygon := func(outline []jsonMapPoint) geometry_msgs.Polygon {
+			var poly geometry_msgs.Polygon
+			for _, pt := range outline {
+				poly.Points = append(poly.Points, geometry_msgs.Point32{
+					X: float32(pt.X), Y: float32(pt.Y), Z: 0,
+				})
+			}
+			return poly
 		}
+
+		switch areaType {
+		case "obstacle":
+			// Attach to the last mowing area
+			if lastMowIndex >= 0 && lastMowIndex < len(result.WorkingArea) {
+				result.WorkingArea[lastMowIndex].Obstacles = append(
+					result.WorkingArea[lastMowIndex].Obstacles,
+					outlineToPolygon(area.Outline),
+				)
+			}
+		case "nav":
+			var mapArea xbot_msgs.MapArea
+			if name, ok := area.Properties["name"].(string); ok {
+				mapArea.Name = name
+			}
+			mapArea.Area = outlineToPolygon(area.Outline)
+			result.NavigationAreas = append(result.NavigationAreas, mapArea)
+		default: // "mow" or any other type treated as mowing area
+			var mapArea xbot_msgs.MapArea
+			if name, ok := area.Properties["name"].(string); ok {
+				mapArea.Name = name
+			}
+			mapArea.Area = outlineToPolygon(area.Outline)
+			result.WorkingArea = append(result.WorkingArea, mapArea)
+			lastMowIndex = len(result.WorkingArea) - 1
+		}
+
+		// Update bounds from all area types
 		for _, pt := range area.Outline {
-			mapArea.Area.Points = append(mapArea.Area.Points, geometry_msgs.Point32{
-				X: float32(pt.X), Y: float32(pt.Y), Z: 0,
-			})
 			if pt.X < minX { minX = pt.X }
 			if pt.X > maxX { maxX = pt.X }
 			if pt.Y < minY { minY = pt.Y }
 			if pt.Y > maxY { maxY = pt.Y }
-		}
-
-		areaType, _ := area.Properties["type"].(string)
-		if areaType == "navigation" {
-			result.NavigationAreas = append(result.NavigationAreas, mapArea)
-		} else {
-			result.WorkingArea = append(result.WorkingArea, mapArea)
 		}
 	}
 
