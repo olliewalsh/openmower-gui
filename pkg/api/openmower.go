@@ -197,6 +197,8 @@ func SubscriberRoute(group *gin.RouterGroup, provider types.IRosProvider) {
 			def, err = subscribe(provider, c, conn, "/ll/emergency", -1)
 		case "dockingSensor":
 			def, err = subscribe(provider, c, conn, "/mower/docking_sensor", -1)
+		case "lidar":
+			def, err = subscribe(provider, c, conn, "/scan", 100)
 		}
 		if err != nil {
 			log.Println(err.Error())

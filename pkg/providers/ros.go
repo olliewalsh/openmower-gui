@@ -91,6 +91,7 @@ type RosProvider struct {
 	powerSubscriber           *goroslib.Subscriber
 	emergencySubscriber       *goroslib.Subscriber
 	dockingSensorSubscriber   *goroslib.Subscriber
+	lidarSubscriber           *goroslib.Subscriber
 	subscribers               map[string]map[string]*RosSubscriber
 	lastMessage               map[string][]byte
 	mowingPaths               []*nav_msgs.Path
@@ -192,6 +193,9 @@ func (p *RosProvider) resetSubscribers() {
 	if p.dockingSensorSubscriber != nil {
 		p.dockingSensorSubscriber.Close()
 	}
+	if p.lidarSubscriber != nil {
+		p.lidarSubscriber.Close()
+	}
 	p.node = nil
 	p.currentPathSubscriber = nil
 	p.gpsSubscriber = nil
@@ -205,6 +209,7 @@ func (p *RosProvider) resetSubscribers() {
 	p.powerSubscriber = nil
 	p.emergencySubscriber = nil
 	p.dockingSensorSubscriber = nil
+	p.lidarSubscriber = nil
 	p.mowingPaths = []*nav_msgs.Path{}
 	p.mowingPath = nil
 	p.mowingPathOrigin = nil
@@ -472,6 +477,17 @@ func (p *RosProvider) initSubscribers() error {
 			QueueSize: 1,
 		})
 		logrus.Info("Subscribed to /mower/docking_sensor")
+	}
+	if p.lidarSubscriber == nil {
+		p.lidarSubscriber, _ = goroslib.NewSubscriber(goroslib.SubscriberConf{
+			Node:      node,
+			Topic:     "/scan",
+			Callback:  cbHandler[*sensor_msgs.LaserScan](p, "/scan"),
+			QueueSize: 1,
+		})
+		if p.lidarSubscriber != nil {
+			logrus.Info("Subscribed to /scan")
+		}
 	}
 	return nil
 }

@@ -5,10 +5,11 @@ import {useWS} from "../hooks/useWS.ts";
 import centroid from "@turf/centroid";
 import union from "@turf/union";
 import {featureCollection} from "@turf/helpers"
-import {ChangeEvent, useCallback, useEffect, useMemo, useState} from "react";
-import {AbsolutePose, Map as MapType, MapArea, Marker, MarkerArray, Path, Twist} from "../types/ros.ts";
+import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path, Twist} from "../types/ros.ts";
 import DrawControl from "../components/DrawControl.tsx";
 import Map, {Layer, Source} from 'react-map-gl';
+import type mapboxgl from 'mapbox-gl';
 import type {Feature} from 'geojson';
 import {FeatureCollection, Polygon, Position} from "geojson";
 import {MowerActions, useMowerAction} from "../components/MowerActions.tsx";
@@ -75,6 +76,23 @@ export const MapPage = () => {
     const [map, setMap] = useState<MapType | undefined>(undefined)
     const [path, setPath] = useState<MarkerArray | undefined>(undefined)
     const [plan, setPlan] = useState<Path | undefined>(undefined)
+    const robotPoseRef = useRef<{ x: number; y: number; heading: number } | null>(null)
+    const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+    const [lidarCollection, setLidarCollection] = useState<GeoJSON.FeatureCollection>({
+        type: "FeatureCollection",
+        features: []
+    })
+
+    // Keep lidar layer on top of draw layers
+    useEffect(() => {
+        const m = mapInstanceRef.current
+        if (!m) return
+        try {
+            if (m.getLayer('lidar-points')) {
+                m.moveLayer('lidar-points')
+            }
+        } catch { /* layer may not exist yet */ }
+    }, [lidarCollection])
     const mowingToolWidth = parseFloat(settings["OM_TOOL_WIDTH"] ?? "0.13") * 100;
     const [mowingAreas, setMowingAreas] = useState<{ key: string, label: string, feat: Feature }[]>([])
     const poseStream = useWS<string>(() => {
@@ -89,11 +107,16 @@ export const MapPage = () => {
         (e) => {
             const pose = JSON.parse(e) as AbsolutePose
             const mower_lonlat = transpose(offsetX, offsetY, datum, pose.Pose?.Pose?.Position?.Y!!, pose.Pose?.Pose?.Position?.X!!)
+            robotPoseRef.current = {
+                x: pose.Pose?.Pose?.Position?.X ?? 0,
+                y: pose.Pose?.Pose?.Position?.Y ?? 0,
+                heading: pose.MotionHeading ?? 0,
+            }
             setFeatures(oldFeatures => {
                 let orientation = pose.MotionHeading!!;
                 const line = drawLine(offsetX, offsetY, datum, pose.Pose?.Pose?.Position?.Y!!, pose.Pose?.Pose?.Position?.X!!, orientation);
                 return {
-                    ...oldFeatures, mower: new MowerFeatureBase(mower_lonlat) 
+                    ...oldFeatures, mower: new MowerFeatureBase(mower_lonlat)
                     , ['mower-heading']: new LineFeatureBase("mower-heading", [mower_lonlat, line],'#ff0000','heading')
                 }
             })
@@ -178,7 +201,49 @@ export const MapPage = () => {
         },
         () => {
         });
-    
+
+    const lidarStream = useWS<string>(() => {
+            console.log({ message: "Lidar Stream closed" })
+        }, () => {
+            console.log({ message: "Lidar Stream connected" })
+        },
+        (e) => {
+            const scan = JSON.parse(e) as LaserScan
+            const pose = robotPoseRef.current
+            if (!pose || !scan.Ranges) return
+
+            const rays: GeoJSON.Feature[] = []
+            const angleMin = scan.AngleMin ?? 0
+            const angleInc = scan.AngleIncrement ?? 0
+            const rangeMin = scan.RangeMin ?? 0
+            const rangeMax = scan.RangeMax ?? 12
+
+            // Downsample: take every Nth point for performance
+            const step = Math.max(1, Math.floor(scan.Ranges.length / 90))
+            for (let i = 0; i < scan.Ranges.length; i += step) {
+                const range = scan.Ranges[i]
+                if (range < rangeMin || range > rangeMax) continue
+
+                const angle = angleMin + i * angleInc + pose.heading
+                const endX = pose.x + range * Math.cos(angle)
+                const endY = pose.y + range * Math.sin(angle)
+                const endLonLat = transpose(offsetX, offsetY, datum, endY, endX)
+
+                rays.push({
+                    type: "Feature",
+                    properties: { intensity: range < rangeMax * 0.8 ? 'hit' : 'far' },
+                    geometry: {
+                        type: "Point",
+                        coordinates: endLonLat
+                    }
+                })
+            }
+            setLidarCollection({
+                type: "FeatureCollection",
+                features: rays
+            })
+        });
+
     useEffect(() => {
         if (envs) {
             setTileUri(envs.tileUri)
@@ -203,9 +268,11 @@ export const MapPage = () => {
             pathStream.stop()
             planStream.stop()
             mowingPathStream.stop()
+            lidarStream.stop()
             highLevelStatus.stop()
             setPath(undefined)
             setPlan(undefined)
+            setLidarCollection({ type: "FeatureCollection", features: [] })
         } else {
             if (settings["OM_DATUM_LONG"] == undefined || settings["OM_DATUM_LAT"] == undefined) {
                 return
@@ -216,6 +283,7 @@ export const MapPage = () => {
             pathStream.start("/api/openmower/subscribe/path")
             planStream.start("/api/openmower/subscribe/plan")
             mowingPathStream.start("/api/openmower/subscribe/mowingPath")
+            lidarStream.start("/api/openmower/subscribe/lidar")
         }
     }, [editMap])
     useEffect(() => {
@@ -237,6 +305,7 @@ export const MapPage = () => {
         pathStream.start("/api/openmower/subscribe/path")
         planStream.start("/api/openmower/subscribe/plan")
         mowingPathStream.start("/api/openmower/subscribe/mowingPath")
+        lidarStream.start("/api/openmower/subscribe/lidar")
     }, [settings]);
 
     useEffect(() => {
@@ -247,6 +316,7 @@ export const MapPage = () => {
             joyStream.stop()
             planStream.stop()
             mowingPathStream.stop()
+            lidarStream.stop()
             highLevelStatus.stop()
         }
     }, [])
@@ -1190,6 +1260,7 @@ export const MapPage = () => {
                                                          }}
                                                          style={{width: '100%', height: '100%'}}
                                                          mapStyle={"mapbox://styles/mapbox/satellite-streets-v12"}
+                                                         onLoad={(e) => { mapInstanceRef.current = e.target as mapboxgl.Map }}
                 >
                     {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
                     {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}
@@ -1221,6 +1292,18 @@ export const MapPage = () => {
                         onDelete={onDelete}
                         onOpenDetails={onOpenDetails}
                     />
+                    <Source type={"geojson"} id={"lidar"} data={lidarCollection}>
+                        <Layer type={"circle"} id={"lidar-points"} paint={{
+                            "circle-radius": 3,
+                            "circle-color": [
+                                "case",
+                                ["==", ["get", "intensity"], "hit"],
+                                "rgba(255, 50, 50, 0.8)",
+                                "rgba(255, 220, 80, 0.4)"
+                            ],
+                            "circle-stroke-width": 0,
+                        }}/>
+                    </Source>
                 </Map> : <Spinner/>}
                 {highLevelStatus.highLevelStatus.StateName === "AREA_RECORDING" &&
                     <div style={{position: "absolute", bottom: 30, right: 30, zIndex: 100}}>

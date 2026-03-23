@@ -222,5 +222,6 @@ export class MowingAreaFeature extends MapAreaFeature {
         return name ? name  + " (" + this.getMowingOrder().toString() +")" : "Area " + this.getMowingOrder().toString();
     }
 
-    
+
 }
+

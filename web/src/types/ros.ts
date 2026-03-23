@@ -296,6 +296,15 @@ export type AbsolutePose = {
     MotionHeading?: number
 }
 
+export type LaserScan = {
+    AngleMin?: number
+    AngleMax?: number
+    AngleIncrement?: number
+    RangeMin?: number
+    RangeMax?: number
+    Ranges?: number[]
+}
+
 export type Imu = {
     /*
     	Orientation                  geometry_msgs.Quaternion
