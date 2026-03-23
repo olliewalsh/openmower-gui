@@ -3,14 +3,19 @@ import {renderHook, act} from '@testing-library/react';
 import {useMapEditHistory} from './useMapEditHistory.ts';
 import type {MowingFeature} from '../../../types/map.ts';
 
-// Mock antd Modal
+// Mock antd App.useApp to provide modal.confirm
+const mockConfirm = vi.fn(({onOk}: {onOk: () => void}) => onOk());
 vi.mock('antd', async () => {
     const actual = await vi.importActual('antd');
     return {
         ...actual,
-        Modal: {
-            ...((actual as Record<string, unknown>).Modal as Record<string, unknown>),
-            confirm: vi.fn(({onOk}: {onOk: () => void}) => onOk()),
+        App: {
+            ...((actual as Record<string, unknown>).App as Record<string, unknown>),
+            useApp: () => ({
+                notification: {},
+                message: {},
+                modal: {confirm: mockConfirm},
+            }),
         },
     };
 });

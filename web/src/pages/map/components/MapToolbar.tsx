@@ -13,6 +13,9 @@ import {
     DatabaseOutlined,
     DownloadOutlined,
     UploadOutlined,
+    BorderOutlined,
+    DeleteOutlined,
+    MergeCellsOutlined,
 } from "@ant-design/icons";
 import type {MenuInfo} from "rc-menu/lib/interface";
 import {MowerActions} from "../../../components/MowerActions.tsx";
@@ -44,8 +47,11 @@ interface MapToolbarProps {
     onDownloadGeoJSON: () => void;
     onUploadGeoJSON: () => void;
     onMowArea: (key: string) => Promise<void>;
-    hasSelectedFeature?: boolean;
+    selectedFeatureCount?: number;
     onEditSelectedFeature?: () => void;
+    onDrawPolygon?: () => void;
+    onTrash?: () => void;
+    onCombine?: () => void;
 }
 
 export const MapToolbar = ({
@@ -54,7 +60,8 @@ export const MapToolbar = ({
     onEditMap, onSaveMap, onUndo, onRedo, onToggleSatellite,
     onManualMode, onStopManualMode,
     onBackupMap, onRestoreMap, onDownloadGeoJSON, onUploadGeoJSON,
-    onMowArea, hasSelectedFeature, onEditSelectedFeature,
+    onMowArea, selectedFeatureCount = 0, onEditSelectedFeature,
+    onDrawPolygon, onTrash, onCombine,
 }: MapToolbarProps) => {
     const dataMenuItems: MenuProps["items"] = [
         {
@@ -143,7 +150,7 @@ export const MapToolbar = ({
                     </Button>
                 )}
                 {editMap && (
-                    <Button.Group key="undoRedo">
+                    <Space.Compact key="undoRedo">
                         <Tooltip title="Undo">
                             <Button
                                 icon={<UndoOutlined />}
@@ -160,7 +167,7 @@ export const MapToolbar = ({
                                 aria-label="Redo"
                             />
                         </Tooltip>
-                    </Button.Group>
+                    </Space.Compact>
                 )}
 
                 {editMap && (
@@ -168,12 +175,44 @@ export const MapToolbar = ({
                         <Button
                             key="btnEditProps"
                             icon={<FormOutlined />}
-                            disabled={!hasSelectedFeature}
+                            disabled={selectedFeatureCount !== 1}
                             onClick={onEditSelectedFeature}
                         >
                             Edit Properties
                         </Button>
                     </Tooltip>
+                )}
+                {editMap && (
+                    <Divider type="vertical" style={{height: "2em"}} />
+                )}
+                {editMap && (
+                    <Space.Compact key="drawTools">
+                        <Tooltip title="Draw new polygon">
+                            <Button
+                                icon={<BorderOutlined />}
+                                onClick={onDrawPolygon}
+                                aria-label="Draw polygon"
+                            >
+                                Draw
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title="Delete selected feature">
+                            <Button
+                                icon={<DeleteOutlined />}
+                                disabled={selectedFeatureCount === 0}
+                                onClick={onTrash}
+                                aria-label="Delete"
+                            />
+                        </Tooltip>
+                        <Tooltip title="Combine selected features">
+                            <Button
+                                icon={<MergeCellsOutlined />}
+                                disabled={selectedFeatureCount === 0}
+                                onClick={onCombine}
+                                aria-label="Combine"
+                            />
+                        </Tooltip>
+                    </Space.Compact>
                 )}
 
                 {/* View group */}

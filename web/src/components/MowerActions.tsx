@@ -151,7 +151,7 @@ export const MowerActions: React.FC<React.PropsWithChildren> = (props) => {
                     >Emergency Off</AsyncButton> : null}
             </Col>
             <Col>
-                <AsyncDropDownButton style={{display: "inline"}}  key="drpActions"  size={"small"} menu={{
+                <AsyncDropDownButton style={{display: "inline"}}  key="drpActions"  menu={{
                     items: actionMenuItems,
                     onAsyncClick: async (e) => {
                         const item = actionMenuItems.find(item => item.key == e.key)

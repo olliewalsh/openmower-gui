@@ -48,7 +48,7 @@ export const MapPage = () => {
 
     const [currentFeature, setCurrentFeature] = useState<Feature | undefined>(undefined)
     const [curMowingAreaFeature, setCurMowingAreaFeature] = useState<MowingAreaEdit>(new MowingAreaEdit())
-    const [selectedFeatureId, setSelectedFeatureId] = useState<string | undefined>(undefined)
+    const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([])
 
     const {settings} = useSettings()
     const [labelsCollection, setLabelsCollection] = useState<FeatureCollection>({
@@ -68,6 +68,15 @@ export const MapPage = () => {
     const [useSatellite, setUseSatellite] = useState(true)
     const robotPoseRef = useRef<{ x: number; y: number; heading: number } | null>(null)
     const mapInstanceRef = useRef<MapboxMap | null>(null)
+    const drawRef = useRef<import('@mapbox/mapbox-gl-draw').default | null>(null)
+
+    // Only include editable polygon features for DrawControl — exclude mower,
+    // paths, and other display-only features so that frequent pose updates don't
+    // trigger DrawControl to deleteAll() + re-add, which wipes out selection state.
+    const drawableFeatures = useMemo(
+        () => Object.values(features).filter(f => f instanceof MowingFeatureBase),
+        [features]
+    );
 
     // Extracted hooks
     const {offsetX, offsetY, handleOffsetX, handleOffsetY} = useMapOffset({config, setConfig, notification});
@@ -851,20 +860,31 @@ export const MapPage = () => {
     }, [notification]);
 
     const onSelectionChange = useCallback((e: { features: GeoJSON.Feature[] }) => {
-        if (e.features.length === 1 && e.features[0].id) {
-            setSelectedFeatureId(String(e.features[0].id));
-        } else {
-            setSelectedFeatureId(undefined);
-        }
+        setSelectedFeatureIds(
+            e.features
+                .filter((f) => f.id != null)
+                .map((f) => String(f.id))
+        );
     }, []);
 
     const handleEditSelectedFeature = useCallback(() => {
-        if (!selectedFeatureId) return;
-        const feat = features[selectedFeatureId];
+        if (selectedFeatureIds.length !== 1) return;
+        const feat = features[selectedFeatureIds[0]];
         if (!feat) return;
-        // Reuse onOpenDetails by constructing the expected event shape
         onOpenDetails({feature: feat});
-    }, [selectedFeatureId, features, onOpenDetails]);
+    }, [selectedFeatureIds, features, onOpenDetails]);
+
+    const handleDrawPolygon = useCallback(() => {
+        drawRef.current?.changeMode('draw_polygon');
+    }, []);
+
+    const handleTrash = useCallback(() => {
+        drawRef.current?.trash();
+    }, []);
+
+    const handleCombine = useCallback(() => {
+        drawRef.current?.combineFeatures();
+    }, []);
 
     const onDelete = useCallback((e: any) => {
         setFeatures(currFeatures => {
@@ -1225,17 +1245,14 @@ export const MapPage = () => {
                         "text-halo-width": 1.5,
                     }}/>
                     <DrawControl
+                        drawRef={drawRef}
                         styles={MapStyle}
                         userProperties={true}
-                        features={Object.values(features)}
+                        features={drawableFeatures}
                         position="top-left"
                         displayControlsDefault={false}
                         editMode={editMap}
-                        controls={{
-                            polygon: true,
-                            trash: true,
-                            combine_features: true,
-                        }}
+                        controls={{}}
                         defaultMode="simple_select"
                         onCreate={onCreate}
                         onUpdate={onUpdate}
@@ -1272,9 +1289,12 @@ export const MapPage = () => {
                     historyIndex={historyIndex}
                     editHistoryLength={editHistory.length}
                     mowingAreas={mowingAreas}
-                    hasSelectedFeature={!!selectedFeatureId}
+                    selectedFeatureCount={selectedFeatureIds.length}
                     onEditMap={handleEditMap}
                     onEditSelectedFeature={handleEditSelectedFeature}
+                    onDrawPolygon={handleDrawPolygon}
+                    onTrash={handleTrash}
+                    onCombine={handleCombine}
                     onSaveMap={handleSaveMap}
                     onUndo={handleUndo}
                     onRedo={handleRedo}
