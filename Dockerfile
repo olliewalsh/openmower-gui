@@ -4,10 +4,10 @@ COPY . /app
 WORKDIR /app
 RUN CGO_ENABLED=0 go build -o openmower-gui
 
-FROM node:21 AS build-web
+FROM node:22 AS build-web
 COPY ./web /web
 WORKDIR /web
-RUN npm install -g yarn && yarn && yarn build
+RUN yarn && yarn build
 
 FROM ubuntu:22.04 AS deps
 RUN apt-get update && apt-get install -y ca-certificates curl python3 python3-pip python3-venv libjim-dev\
