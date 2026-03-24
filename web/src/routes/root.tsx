@@ -166,7 +166,8 @@ export default function Root() {
                     alignItems: 'stretch',
                     background: COLORS.bgCard,
                     borderTop: `1px solid ${COLORS.border}`,
-                    height: 56,
+                    minHeight: 56,
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     flexShrink: 0,
                     zIndex: 100,
                 }}>

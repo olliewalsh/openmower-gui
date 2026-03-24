@@ -214,7 +214,7 @@ export const SettingsComponent: React.FC<{
             </Col>
             <Col span={24} style={{
                 position: "fixed",
-                bottom: isMobile ? 56 : 20,
+                bottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 20,
                 left: isMobile ? 0 : undefined,
                 right: isMobile ? 0 : undefined,
                 padding: isMobile ? '8px 12px' : undefined,

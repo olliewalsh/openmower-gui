@@ -1,0 +1,9 @@
+{
+  "name": "OpenMower GUI",
+  "short_name": "OpenMower",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#141414",
+  "theme_color": "#141414",
+  "description": "OpenMower GUI - Robot Mower Controller"
+}
