@@ -29,6 +29,63 @@ func SettingsRoutes(r *gin.RouterGroup, dbProvider types.IDBProvider) {
 	PostSettingsYAML(r, dbProvider)
 }
 
+func extractDefaults(schema map[string]any, defaults map[string]any) {
+	if props, ok := schema["properties"].(map[string]any); ok {
+		for key, prop := range props {
+			if propMap, ok := prop.(map[string]any); ok {
+				if def, hasDef := propMap["default"]; hasDef {
+					defaults[key] = def
+				}
+				extractDefaults(propMap, defaults)
+			}
+		}
+	}
+	if allOf, ok := schema["allOf"].([]any); ok {
+		for _, cond := range allOf {
+			if condMap, ok := cond.(map[string]any); ok {
+				if thenBlock, ok := condMap["then"].(map[string]any); ok {
+					extractDefaults(thenBlock, defaults)
+				}
+			}
+		}
+	}
+}
+
+func getSchema(dbProvider types.IDBProvider) (map[string]any, error) {
+	schemaCacheMu.RLock()
+	if schemaCache != nil && time.Since(schemaCacheTime) < schemaCacheTTL {
+		cached := schemaCache
+		schemaCacheMu.RUnlock()
+		return cached, nil
+	}
+	schemaCacheMu.RUnlock()
+
+	schemaURL := defaultSchemaURL
+	if customURL, err := dbProvider.Get("system.mower.schemaURL"); err == nil && len(customURL) > 0 {
+		schemaURL = string(customURL)
+	}
+
+	schema, err := fetchSchemaFromUpstream(schemaURL)
+	if err != nil {
+		localFile, localErr := os.ReadFile("asserts/mower_config.schema.json")
+		if localErr != nil {
+			return nil, fmt.Errorf("failed to fetch schema from upstream and no local fallback: %w", err)
+		}
+		if jsonErr := json.Unmarshal(localFile, &schema); jsonErr != nil {
+			return nil, fmt.Errorf("invalid local schema JSON: %w", jsonErr)
+		}
+	}
+
+	schema = applyMowgliOverlay(schema)
+
+	schemaCacheMu.Lock()
+	schemaCache = schema
+	schemaCacheTime = time.Now()
+	schemaCacheMu.Unlock()
+
+	return schema, nil
+}
+
 // PostSettings saves the settings to the mower_config.sh file
 //
 // @Summary saves the settings to the mower_config.sh file
@@ -67,6 +124,19 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 				}
 			}
 		}
+
+		// Merge defaults from schema
+		schema, err := getSchema(dbProvider)
+		if err == nil {
+			defaults := map[string]any{}
+			extractDefaults(schema, defaults)
+			for key, value := range defaults {
+				if _, exists := settings[key]; !exists {
+					settings[key] = value
+				}
+			}
+		}
+
 		for key, value := range settingsPayload {
 			settings[key] = value
 		}
@@ -169,6 +239,18 @@ func syncToShellConfig(payload map[string]any, dbProvider types.IDBProvider) err
 		if parseErr == nil {
 			for k, v := range parsed {
 				settings[k] = v
+			}
+		}
+	}
+
+	// Merge defaults from schema
+	schema, err := getSchema(dbProvider)
+	if err == nil {
+		defaults := map[string]any{}
+		extractDefaults(schema, defaults)
+		for key, value := range defaults {
+			if _, exists := settings[key]; !exists {
+				settings[key] = value
 			}
 		}
 	}
@@ -447,50 +529,13 @@ func promoteAdvancedSection(props map[string]any, sectionKey string, overrides m
 // @Router /settings/schema [get]
 func GetSettingsSchema(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 	return r.GET("/settings/schema", func(c *gin.Context) {
-		// Check cache
-		schemaCacheMu.RLock()
-		if schemaCache != nil && time.Since(schemaCacheTime) < schemaCacheTTL {
-			cached := schemaCache
-			schemaCacheMu.RUnlock()
-			c.JSON(200, cached)
+		schema, err := getSchema(dbProvider)
+		if err != nil {
+			c.JSON(500, ErrorResponse{
+				Error: err.Error(),
+			})
 			return
 		}
-		schemaCacheMu.RUnlock()
-
-		// Determine schema URL
-		schemaURL := defaultSchemaURL
-		if customURL, err := dbProvider.Get("system.mower.schemaURL"); err == nil && len(customURL) > 0 {
-			schemaURL = string(customURL)
-		}
-
-		schema, err := fetchSchemaFromUpstream(schemaURL)
-		if err != nil {
-			log.Printf("Failed to fetch schema from upstream: %v", err)
-			// Fall back to local file if available
-			localFile, localErr := os.ReadFile("asserts/mower_config.schema.json")
-			if localErr != nil {
-				c.JSON(500, ErrorResponse{
-					Error: "failed to fetch schema from upstream and no local fallback: " + err.Error(),
-				})
-				return
-			}
-			if jsonErr := json.Unmarshal(localFile, &schema); jsonErr != nil {
-				c.JSON(500, ErrorResponse{
-					Error: "invalid local schema JSON: " + jsonErr.Error(),
-				})
-				return
-			}
-		}
-
-		// Apply Mowgli overlay
-		schema = applyMowgliOverlay(schema)
-
-		// Update cache
-		schemaCacheMu.Lock()
-		schemaCache = schema
-		schemaCacheTime = time.Now()
-		schemaCacheMu.Unlock()
-
 		c.JSON(200, schema)
 	})
 }
@@ -569,6 +614,19 @@ func PostSettingsYAML(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRou
 		if err == nil {
 			_ = yaml.Unmarshal(file, &existing)
 		}
+
+		// Merge defaults from schema
+		schema, err := getSchema(dbProvider)
+		if err == nil {
+			defaults := map[string]any{}
+			extractDefaults(schema, defaults)
+			for key, value := range defaults {
+				if _, exists := existing[key]; !exists {
+					existing[key] = value
+				}
+			}
+		}
+
 		for key, value := range payload {
 			existing[key] = value
 		}

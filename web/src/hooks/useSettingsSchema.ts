@@ -77,7 +77,7 @@ export const useSettingsSchema = () => {
         async (newValues: Record<string, any>) => {
             try {
                 setLoading(true);
-                const res = await guiApi.settings.settingsYamlCreate(newValues);
+                const res = await guiApi.settings.settingsCreate(newValues);
                 if (res.error) {
                     throw new Error((res.error as any).error);
                 }
