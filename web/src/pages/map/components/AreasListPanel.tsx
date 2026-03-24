@@ -1,4 +1,4 @@
-import {EnvironmentOutlined, CompassOutlined, StopOutlined} from "@ant-design/icons";
+import {EnvironmentOutlined, CompassOutlined, StopOutlined, UpOutlined, DownOutlined} from "@ant-design/icons";
 import type {AreaListItem} from "../utils/types.ts";
 
 const TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -10,10 +10,12 @@ const TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label:
 interface AreasListPanelProps {
     areas: AreaListItem[];
     onAreaClick?: (id: string) => void;
+    onReorder?: (id: string, direction: 'up' | 'down') => void;
     selectedId?: string;
 }
 
-export const AreasListPanel = ({areas, onAreaClick, selectedId}: AreasListPanelProps) => {
+export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: AreasListPanelProps) => {
+    const workAreas = areas.filter(a => a.ftype === 'workarea');
     if (areas.length === 0) return null;
 
     return (
@@ -90,22 +92,53 @@ export const AreasListPanel = ({areas, onAreaClick, selectedId}: AreasListPanelP
                                 </div>
                             </div>
 
-                            {/* Mowing order badge */}
+                            {/* Mowing order badge + reorder arrows */}
                             {item.mowingOrder != null && (
-                                <span style={{
-                                    backgroundColor: cfg.color,
-                                    color: '#fff',
-                                    borderRadius: '50%',
-                                    width: 22,
-                                    height: 22,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    flexShrink: 0,
-                                }}>
-                                    {item.mowingOrder}
+                                <span style={{display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0}}>
+                                    {onReorder && (
+                                        <span style={{display: 'flex', flexDirection: 'column', gap: 0}}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onReorder(item.id, 'up'); }}
+                                                disabled={item.mowingOrder <= 1}
+                                                style={{
+                                                    background: 'transparent', border: 'none', padding: 0,
+                                                    color: item.mowingOrder <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+                                                    cursor: item.mowingOrder <= 1 ? 'not-allowed' : 'pointer',
+                                                    fontSize: 10, lineHeight: 1,
+                                                }}
+                                                aria-label="Move up"
+                                            >
+                                                <UpOutlined />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onReorder(item.id, 'down'); }}
+                                                disabled={item.mowingOrder >= workAreas.length}
+                                                style={{
+                                                    background: 'transparent', border: 'none', padding: 0,
+                                                    color: item.mowingOrder >= workAreas.length ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+                                                    cursor: item.mowingOrder >= workAreas.length ? 'not-allowed' : 'pointer',
+                                                    fontSize: 10, lineHeight: 1,
+                                                }}
+                                                aria-label="Move down"
+                                            >
+                                                <DownOutlined />
+                                            </button>
+                                        </span>
+                                    )}
+                                    <span style={{
+                                        backgroundColor: cfg.color,
+                                        color: '#fff',
+                                        borderRadius: '50%',
+                                        width: 22,
+                                        height: 22,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                    }}>
+                                        {item.mowingOrder}
+                                    </span>
                                 </span>
                             )}
                         </button>

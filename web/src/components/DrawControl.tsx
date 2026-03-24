@@ -5,6 +5,7 @@ import type {MapRef} from 'react-map-gl/mapbox';
 import {useEffect, useRef} from "react";
 import type {RefObject} from "react";
 import DirectSelectWithBoxMode from '../modes/DirectSelectWithBoxMode';
+import SplitLineMode from '../modes/SplitLineMode';
 
 type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
     position?: ControlPosition;
@@ -17,7 +18,7 @@ type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
     onCombine: (evt: { createdFeatures: GeoJSON.Feature[]; deletedFeatures: GeoJSON.Feature[] }) => void;
     onDelete: (evt: { features: GeoJSON.Feature[] }) => void;
     onSelectionChange: (evt: { features: GeoJSON.Feature[] }) => void;
-    onOpenDetails: (evt: { features: GeoJSON.Feature[] }) => void;
+    onOpenDetails: (evt: { feature?: GeoJSON.Feature }) => void;
 };
 
 export default function DrawControl(props: DrawControlProps) {
@@ -51,7 +52,8 @@ export default function DrawControl(props: DrawControlProps) {
             ...drawOptions,
             modes: {
                 ...MapboxDraw.modes,
-                direct_select: DirectSelectWithBoxMode
+                direct_select: DirectSelectWithBoxMode,
+                split_line: SplitLineMode,
             }
         }),
         ({map}: {map: MapRef}) => {

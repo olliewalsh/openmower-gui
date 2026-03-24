@@ -10,8 +10,11 @@ import {
     SplitCellsOutlined,
     MinusSquareOutlined,
     FormOutlined,
+    PlusOutlined,
 } from "@ant-design/icons";
 import AsyncButton from "../../../components/AsyncButton.tsx";
+import {ShapePickerDropdown} from "./ShapePickerDropdown.tsx";
+import type {ShapeType} from "../hooks/useMapEditing.ts";
 
 interface MapEditorToolbarProps {
     hasUnsavedChanges: boolean;
@@ -23,6 +26,8 @@ interface MapEditorToolbarProps {
     onUndo: () => void;
     onRedo: () => void;
     onDrawPolygon?: () => void;
+    onDrawShape?: (shape: ShapeType, sizeMeters: number) => void;
+    onDrawEmoji?: (emoji: string, sizeMeters: number) => void;
     onTrash?: () => void;
     onCombine?: () => void;
     onSubtract?: () => void;
@@ -104,7 +109,7 @@ const ToolButton = ({icon, tooltip, onClick, disabled, danger, primary, glow}: T
 export const MapEditorToolbar = ({
     hasUnsavedChanges, historyIndex, editHistoryLength,
     selectedFeatureCount, onSaveMap, onCancel, onUndo, onRedo,
-    onDrawPolygon, onTrash, onCombine, onSubtract, onSplit, onEditSelectedFeature,
+    onDrawPolygon, onDrawShape, onDrawEmoji, onTrash, onCombine, onSubtract, onSplit, onEditSelectedFeature,
 }: MapEditorToolbarProps) => (
     <div style={glassStyle}>
         {/* Save / Cancel */}
@@ -134,6 +139,21 @@ export const MapEditorToolbar = ({
 
         {/* Drawing tools */}
         <ToolButton icon={<BorderOutlined/>} tooltip="Draw polygon" onClick={onDrawPolygon}/>
+        <ShapePickerDropdown onDrawShape={onDrawShape} onDrawEmoji={onDrawEmoji} placement="bottomLeft">
+            <Tooltip title="Add shape" placement="right">
+                <button
+                    style={btnStyle}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                    }}
+                >
+                    <PlusOutlined />
+                </button>
+            </Tooltip>
+        </ShapePickerDropdown>
         <ToolButton icon={<DeleteOutlined/>} tooltip="Delete selected" onClick={onTrash} disabled={selectedFeatureCount === 0} danger/>
 
         <div style={dividerStyle}/>

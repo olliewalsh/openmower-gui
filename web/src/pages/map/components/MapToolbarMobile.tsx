@@ -10,7 +10,6 @@ import {
     EditOutlined,
     FormOutlined,
     CloseOutlined,
-    BorderOutlined,
     DeleteOutlined,
     MergeCellsOutlined,
     DatabaseOutlined,
@@ -24,11 +23,20 @@ import {
     PlayCircleOutlined,
     HomeOutlined,
     WarningOutlined,
+    PlusOutlined,
+    BorderOutlined,
+    AimOutlined,
+    ForwardOutlined,
+    PauseOutlined,
+    CaretRightOutlined,
+    ThunderboltOutlined,
 } from "@ant-design/icons";
 import type {MenuInfo} from "rc-menu/lib/interface";
 import AsyncButton from "../../../components/AsyncButton.tsx";
 import type {Feature} from "geojson";
 import type {MenuItemType} from "antd/es/menu/interface";
+import {ShapePickerDropdown} from "./ShapePickerDropdown.tsx";
+import type {ShapeType} from "../hooks/useMapEditing.ts";
 
 interface MowingAreaItem extends MenuItemType {
     feat: Feature;
@@ -57,6 +65,8 @@ interface MapToolbarMobileProps {
     selectedFeatureCount?: number;
     onEditSelectedFeature?: () => void;
     onDrawPolygon?: () => void;
+    onDrawShape?: (shape: ShapeType, sizeMeters: number) => void;
+    onDrawEmoji?: (emoji: string, sizeMeters: number) => void;
     onTrash?: () => void;
     onCombine?: () => void;
     onSubtract?: () => void;
@@ -67,6 +77,12 @@ interface MapToolbarMobileProps {
     onHome?: () => Promise<void>;
     onEmergencyOn?: () => Promise<void>;
     onEmergencyOff?: () => Promise<void>;
+    onAreaRecording?: () => Promise<void>;
+    onMowNextArea?: () => Promise<void>;
+    onContinueOrPause?: () => Promise<void>;
+    onBladeForward?: () => Promise<void>;
+    onBladeBackward?: () => Promise<void>;
+    onBladeOff?: () => Promise<void>;
 }
 
 const toolbarStyle: React.CSSProperties = {
@@ -95,19 +111,31 @@ export const MapToolbarMobile = ({
     onManualMode, onStopManualMode,
     onBackupMap, onRestoreMap, onDownloadGeoJSON, onUploadGeoJSON,
     onMowArea, selectedFeatureCount = 0, onEditSelectedFeature,
-    onDrawPolygon, onTrash, onCombine, onSubtract, onSplit,
+    onDrawPolygon, onDrawShape, onDrawEmoji, onTrash, onCombine, onSubtract, onSplit,
     stateName, emergency,
     onStart, onHome, onEmergencyOn, onEmergencyOff,
+    onAreaRecording, onMowNextArea, onContinueOrPause,
+    onBladeForward, onBladeBackward, onBladeOff,
 }: MapToolbarMobileProps) => {
     const [mowLoading, setMowLoading] = useState(false);
 
+    const isIdle = stateName === "IDLE";
+
     const dataMenuItems: MenuProps["items"] = [
         {key: "satellite", icon: <GlobalOutlined />, label: useSatellite ? "Dark map" : "Satellite"},
+        {type: "divider"},
+        {key: "areaRecording", icon: <AimOutlined />, label: "Area Recording"},
+        {key: "mowNext", icon: <ForwardOutlined />, label: "Mow Next Area"},
+        {key: "continueOrPause", icon: isIdle ? <CaretRightOutlined /> : <PauseOutlined />, label: isIdle ? "Continue" : "Pause"},
         {type: "divider"},
         ...(manualMode
             ? [{key: "stopManual", icon: <StopOutlined />, label: "Stop Manual Mowing", danger: true} satisfies NonNullable<MenuProps["items"]>[number]]
             : [{key: "manual", icon: <ControlOutlined />, label: "Manual Mowing"} satisfies NonNullable<MenuProps["items"]>[number]]
         ),
+        {type: "divider"},
+        {key: "bladeForward", icon: <ThunderboltOutlined />, label: "Blade Forward"},
+        {key: "bladeBackward", icon: <ThunderboltOutlined />, label: "Blade Backward"},
+        {key: "bladeOff", icon: <ThunderboltOutlined />, label: "Blade Off", danger: true},
         {type: "divider"},
         {key: "backup", icon: <DatabaseOutlined />, label: "Backup Map"},
         {key: "restore", icon: <DatabaseOutlined />, label: "Restore Map"},
@@ -121,8 +149,14 @@ export const MapToolbarMobile = ({
     const handleMoreClick: MenuProps["onClick"] = ({key}: MenuInfo) => {
         switch (key) {
             case "satellite": onToggleSatellite(); break;
+            case "areaRecording": onAreaRecording?.(); break;
+            case "mowNext": onMowNextArea?.(); break;
+            case "continueOrPause": onContinueOrPause?.(); break;
             case "manual": onManualMode(); break;
             case "stopManual": onStopManualMode(); break;
+            case "bladeForward": onBladeForward?.(); break;
+            case "bladeBackward": onBladeBackward?.(); break;
+            case "bladeOff": onBladeOff?.(); break;
             case "backup": onBackupMap(); break;
             case "restore": onRestoreMap(); break;
             case "download": onDownloadGeoJSON(); break;
@@ -193,6 +227,13 @@ export const MapToolbarMobile = ({
                         onClick={onDrawPolygon}
                         aria-label="Draw polygon"
                     />
+                    <ShapePickerDropdown
+                        onDrawShape={onDrawShape}
+                        onDrawEmoji={onDrawEmoji}
+                        placement="top"
+                    >
+                        <Button icon={<PlusOutlined />} aria-label="Add shape" />
+                    </ShapePickerDropdown>
                     <Button
                         icon={<DeleteOutlined />}
                         disabled={selectedFeatureCount === 0}
@@ -234,7 +275,6 @@ export const MapToolbarMobile = ({
     }
 
     // View mode
-    const isIdle = stateName === "IDLE";
     return (
         <div style={toolbarStyle}>
             {isIdle ? (
