@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cedbossneo/openmower-gui/pkg/types"
@@ -80,6 +81,12 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 			}
 			fileContent += "export " + key + "=" + fmt.Sprintf("%#v", value) + "\n"
 		}
+		if err = os.MkdirAll(filepath.Dir(string(mowerConfigFile)), 0755); err != nil {
+			c.JSON(500, ErrorResponse{
+				Error: err.Error(),
+			})
+			return
+		}
 		err = os.WriteFile(string(mowerConfigFile), []byte(fileContent), 0644)
 		if err != nil {
 			c.JSON(500, ErrorResponse{
@@ -111,6 +118,12 @@ func GetSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 		}
 		file, err := os.ReadFile(string(mowerConfigFilePath))
 		if err != nil {
+			if os.IsNotExist(err) {
+				c.JSON(200, GetSettingsResponse{
+					Settings: map[string]string{},
+				})
+				return
+			}
 			c.JSON(500, ErrorResponse{
 				Error: err.Error(),
 			})
@@ -127,6 +140,63 @@ func GetSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 			Settings: settings,
 		})
 	})
+}
+
+// syncToShellConfig writes OM_* keys from the payload into the mower_config.sh file.
+// It reads the existing .sh file, merges the new OM_* values, and writes it back.
+func syncToShellConfig(payload map[string]any, dbProvider types.IDBProvider) error {
+	// Extract only OM_* keys from payload
+	omKeys := map[string]any{}
+	for key, value := range payload {
+		if strings.HasPrefix(key, "OM_") {
+			omKeys[key] = value
+		}
+	}
+	if len(omKeys) == 0 {
+		return nil
+	}
+
+	mowerConfigFile, err := dbProvider.Get("system.mower.configFile")
+	if err != nil {
+		return fmt.Errorf("get config file path: %w", err)
+	}
+
+	// Read existing shell config
+	settings := map[string]any{}
+	configFileContent, err := os.ReadFile(string(mowerConfigFile))
+	if err == nil {
+		parsed, parseErr := godotenv.Parse(strings.NewReader(string(configFileContent)))
+		if parseErr == nil {
+			for k, v := range parsed {
+				settings[k] = v
+			}
+		}
+	}
+
+	// Merge new OM_* values
+	for key, value := range omKeys {
+		settings[key] = value
+	}
+
+	// Write back
+	var fileContent string
+	for key, value := range settings {
+		if value == true {
+			value = "True"
+		}
+		if value == false {
+			value = "False"
+		}
+		fileContent += "export " + key + "=" + fmt.Sprintf("%#v", value) + "\n"
+	}
+
+	if err := os.MkdirAll(filepath.Dir(string(mowerConfigFile)), 0755); err != nil {
+		return fmt.Errorf("mkdir: %w", err)
+	}
+	if err := os.WriteFile(string(mowerConfigFile), []byte(fileContent), 0644); err != nil {
+		return fmt.Errorf("write file: %w", err)
+	}
+	return nil
 }
 
 var (
@@ -509,12 +579,24 @@ func PostSettingsYAML(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRou
 			})
 			return
 		}
+		if err := os.MkdirAll(filepath.Dir(string(configFilePath)), 0755); err != nil {
+			c.JSON(500, ErrorResponse{
+				Error: err.Error(),
+			})
+			return
+		}
 		if err := os.WriteFile(string(configFilePath), out, 0644); err != nil {
 			c.JSON(500, ErrorResponse{
 				Error: err.Error(),
 			})
 			return
 		}
+
+		// Also sync OM_* keys to the .sh config file for backward compatibility
+		if err := syncToShellConfig(payload, dbProvider); err != nil {
+			log.Printf("Warning: failed to sync to shell config: %v", err)
+		}
+
 		c.JSON(200, OkResponse{})
 	})
 }
