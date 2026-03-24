@@ -8,7 +8,7 @@ type ErrorResponse struct {
 }
 
 type GetSettingsResponse struct {
-	Settings map[string]string `json:"settings,omitempty"`
+	Settings map[string]any `json:"settings,omitempty"`
 }
 
 type GetConfigResponse struct {

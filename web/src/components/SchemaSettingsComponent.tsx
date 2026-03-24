@@ -207,13 +207,6 @@ const SchemaSection: React.FC<SectionProps> = ({ sectionKey, section, values, on
     // Handle additionalProperties sections (key-value editor)
     if ((section as any).additionalProperties && !section.properties) {
         const entries: Record<string, string> = {};
-        const prefix = `__custom_env__`;
-        for (const [k, v] of Object.entries(values)) {
-            if (k.startsWith(prefix)) {
-                entries[k.slice(prefix.length)] = String(v);
-            }
-        }
-        // Also include entries stored directly as custom_environment object
         const customEnv = values["__custom_environment"] as Record<string, string> | undefined;
         if (customEnv) {
             Object.assign(entries, customEnv);

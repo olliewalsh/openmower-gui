@@ -53,14 +53,14 @@ export const useSettingsSchema = () => {
                 setLoading(true);
                 const [schemaRes, valuesRes] = await Promise.all([
                     guiApi.settings.settingsSchemaList(),
-                    guiApi.settings.settingsYamlList(),
+                    guiApi.settings.settingsList(),
                 ]);
                 if (schemaRes.error) {
                     throw new Error((schemaRes.error as any).error);
                 }
                 setSchema(schemaRes.data as JSONSchema);
                 if (!valuesRes.error) {
-                    setValues(valuesRes.data || {});
+                    setValues((valuesRes.data as any)?.settings || {});
                 }
             } catch (e: any) {
                 notification.error({

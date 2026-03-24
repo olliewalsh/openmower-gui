@@ -127,8 +127,8 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 
 		// Merge defaults from schema
 		schema, err := getSchema(dbProvider)
+		defaults := map[string]any{}
 		if err == nil {
-			defaults := map[string]any{}
 			extractDefaults(schema, defaults)
 			for key, value := range defaults {
 				if _, exists := settings[key]; !exists {
@@ -137,12 +137,47 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 			}
 		}
 
+		// Identify which existing settings are custom (not in schema)
+		customEnvVars := map[string]string{}
+		for key, value := range settings {
+			_, isKnown := defaults[key]
+			if !isKnown {
+				if key != "custom_environment" {
+					// We store them as strings, just in case
+					customEnvVars[key] = fmt.Sprintf("%v", value)
+				}
+				delete(settings, key)
+			}
+		}
+
+		// If frontend sends a new custom_environment, it completely replaces the old ones
+		if customEnvObj, ok := settingsPayload["custom_environment"]; ok {
+			// Clear existing custom env vars
+			customEnvVars = map[string]string{}
+			if customEnv, ok := customEnvObj.(map[string]any); ok {
+				for k, v := range customEnv {
+					customEnvVars[k] = fmt.Sprintf("%v", v)
+				}
+			}
+			delete(settingsPayload, "custom_environment")
+		}
+
+		// Process the rest of the payload
 		for key, value := range settingsPayload {
 			settings[key] = value
 		}
+
+		// Re-inject custom env vars to be saved
+		for k, v := range customEnvVars {
+			settings[k] = v
+		}
+
 		// Write settings to file mower_config.sh
 		var fileContent string
 		for key, value := range settings {
+			if key == "custom_environment" {
+				continue
+			}
 			if value == true {
 				value = "True"
 			}
@@ -190,7 +225,7 @@ func GetSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 		if err != nil {
 			if os.IsNotExist(err) {
 				c.JSON(200, GetSettingsResponse{
-					Settings: map[string]string{},
+					Settings: map[string]any{},
 				})
 				return
 			}
@@ -206,8 +241,29 @@ func GetSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 			})
 			return
 		}
+		schema, _ := getSchema(dbProvider)
+		defaults := map[string]any{}
+		if schema != nil {
+			extractDefaults(schema, defaults)
+		}
+
+		finalSettings := map[string]any{}
+		customEnv := map[string]string{}
+		for k, v := range settings {
+			_, isKnown := defaults[k]
+			if !isKnown && k != "custom_environment" {
+				customEnv[k] = v
+			} else {
+				finalSettings[k] = v
+			}
+		}
+
+		if len(customEnv) > 0 {
+			finalSettings["custom_environment"] = customEnv
+		}
+
 		c.JSON(200, GetSettingsResponse{
-			Settings: settings,
+			Settings: finalSettings,
 		})
 	})
 }
