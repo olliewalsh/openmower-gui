@@ -8,7 +8,7 @@ import {createForm, onFieldValueChange} from "@formily/core";
 
 import {SettingsConfig, SettingsDesc, SettingValueType, useSettings} from "../hooks/useSettings.ts";
 import {useIsMobile} from "../hooks/useIsMobile";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 
 const SchemaField = createSchemaField({
     components: {
@@ -23,6 +23,7 @@ export const SettingsComponent: React.FC<{
     actions?: (form: FormType<SettingsConfig>, save: (values: SettingsConfig) => Promise<void>, restartOM: () => Promise<void>, restartGUI: () => Promise<void>) => React.ReactElement[],
     contentStyle?: CSSProperties
 }> = (props) => {
+    const {colors} = useThemeMode();
     const form = useMemo(
         () =>
             createForm<SettingsConfig>({
@@ -218,8 +219,8 @@ export const SettingsComponent: React.FC<{
                 left: isMobile ? 0 : undefined,
                 right: isMobile ? 0 : undefined,
                 padding: isMobile ? '8px 12px' : undefined,
-                background: isMobile ? COLORS.bgCard : undefined,
-                borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+                background: isMobile ? colors.bgCard : undefined,
+                borderTop: isMobile ? `1px solid ${colors.border}` : undefined,
                 zIndex: 50,
             }}>
                 <FormButtonGroup.FormItem>

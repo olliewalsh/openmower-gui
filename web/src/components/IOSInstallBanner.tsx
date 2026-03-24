@@ -1,5 +1,5 @@
 import {CloseOutlined} from "@ant-design/icons";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 
 interface IOSInstallBannerProps {
     onDismiss: () => void;
@@ -13,19 +13,20 @@ const ShareIcon = () => (
     </svg>
 );
 
-export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => (
-    <div style={{
+export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => {
+    const {colors} = useThemeMode();
+    return (<div style={{
         position: 'fixed',
         bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 8px)',
         left: 12,
         right: 12,
         zIndex: 300,
-        background: 'rgba(20, 20, 20, 0.9)',
+        background: colors.glassBackground,
         backdropFilter: 'blur(16px) saturate(180%)',
         WebkitBackdropFilter: 'blur(16px) saturate(180%)',
         borderRadius: 14,
-        border: `1px solid rgba(255, 255, 255, 0.1)`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+        border: colors.glassBorder,
+        boxShadow: colors.glassShadow,
         padding: '14px 16px',
         display: 'flex',
         alignItems: 'flex-start',
@@ -35,7 +36,7 @@ export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => (
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: COLORS.primaryBg,
+            background: colors.primaryBg,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -45,11 +46,11 @@ export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => (
             🤖
         </div>
         <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontWeight: 600, fontSize: 14, color: COLORS.text, marginBottom: 4}}>
+            <div style={{fontWeight: 600, fontSize: 14, color: colors.text, marginBottom: 4}}>
                 Install OpenMower
             </div>
-            <div style={{fontSize: 12, color: COLORS.muted, lineHeight: 1.4}}>
-                Tap <ShareIcon/> then <strong style={{color: COLORS.text}}>Add to Home Screen</strong> for full-screen experience
+            <div style={{fontSize: 12, color: colors.muted, lineHeight: 1.4}}>
+                Tap <ShareIcon/> then <strong style={{color: colors.text}}>Add to Home Screen</strong> for full-screen experience
             </div>
         </div>
         <button
@@ -58,7 +59,7 @@ export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => (
             style={{
                 background: 'none',
                 border: 'none',
-                color: COLORS.muted,
+                color: colors.muted,
                 fontSize: 14,
                 padding: 4,
                 cursor: 'pointer',
@@ -68,4 +69,5 @@ export const IOSInstallBanner = ({onDismiss}: IOSInstallBannerProps) => (
             <CloseOutlined/>
         </button>
     </div>
-);
+    );
+};

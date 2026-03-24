@@ -1,6 +1,7 @@
 import {Outlet, useMatches, useNavigate} from "react-router-dom";
 import {Layout, Typography} from "antd";
 import {
+    BulbOutlined,
     ClockCircleOutlined,
     HeatMapOutlined,
     MessageOutlined,
@@ -15,7 +16,7 @@ import {MowerStatus} from "../components/MowerStatus.tsx";
 import {useIsMobile} from "../hooks/useIsMobile";
 import {useIOSInstallPrompt} from "../hooks/useIOSInstallPrompt";
 import {IOSInstallBanner} from "../components/IOSInstallBanner.tsx";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 
 const navItems = [
     {key: '/openmower', label: 'Dashboard', icon: <RobotOutlined/>},
@@ -43,6 +44,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export default function Root() {
+    const {mode, toggleMode, colors} = useThemeMode();
     const route = useMatches();
     const navigate = useNavigate();
     const isMobile = useIsMobile();
@@ -70,7 +72,7 @@ export default function Root() {
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
-                background: COLORS.bgBase,
+                background: colors.bgBase,
                 overflow: 'hidden',
             }}>
                 {/* Mobile Header */}
@@ -80,8 +82,8 @@ export default function Root() {
                     justifyContent: 'space-between',
                     padding: '0 12px',
                     paddingTop: 'env(safe-area-inset-top, 0px)',
-                    background: COLORS.bgCard,
-                    borderBottom: `1px solid ${COLORS.border}`,
+                    background: colors.bgCard,
+                    borderBottom: `1px solid ${colors.border}`,
                     minHeight: 48,
                     flexShrink: 0,
                     zIndex: 100,
@@ -91,14 +93,14 @@ export default function Root() {
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                             aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
                             style={{
-                                background: 'none', border: 'none', color: COLORS.text,
+                                background: 'none', border: 'none', color: colors.text,
                                 fontSize: 18, padding: 4, cursor: 'pointer', flexShrink: 0,
                             }}
                         >
                             {sidebarOpen ? <CloseOutlined/> : <MenuOutlined/>}
                         </button>
                         <Typography.Text strong style={{
-                            fontSize: 16, color: COLORS.text,
+                            fontSize: 16, color: colors.text,
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>
                             {pageTitle}
@@ -121,8 +123,8 @@ export default function Root() {
                 {/* Mobile Slide-over Nav */}
                 <nav style={{
                     position: 'fixed', top: 48, left: 0, bottom: 56,
-                    width: 260, background: COLORS.bgCard, zIndex: 200,
-                    borderRight: `1px solid ${COLORS.border}`,
+                    width: 260, background: colors.bgCard, zIndex: 200,
+                    borderRight: `1px solid ${colors.border}`,
                     overflowY: 'auto',
                     transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.25s ease-out',
@@ -140,10 +142,10 @@ export default function Root() {
                                         gap: 12,
                                         width: '100%',
                                         padding: '12px 20px',
-                                        background: isActive ? COLORS.primaryBg : 'transparent',
+                                        background: isActive ? colors.primaryBg : 'transparent',
                                         border: 'none',
-                                        borderLeft: isActive ? `3px solid ${COLORS.primary}` : '3px solid transparent',
-                                        color: isActive ? COLORS.primary : COLORS.text,
+                                        borderLeft: isActive ? `3px solid ${colors.primary}` : '3px solid transparent',
+                                        color: isActive ? colors.primary : colors.text,
                                         fontSize: 15,
                                         cursor: 'pointer',
                                         transition: 'background 0.15s, color 0.15s',
@@ -154,6 +156,26 @@ export default function Root() {
                                 </button>
                             );
                         })}
+                        <button
+                            onClick={toggleMode}
+                            aria-label="Toggle theme"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                width: '100%',
+                                padding: '12px 20px',
+                                background: 'none',
+                                border: 'none',
+                                borderLeft: '3px solid transparent',
+                                color: colors.text,
+                                fontSize: 15,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <span style={{fontSize: 18}}><BulbOutlined/></span>
+                            {mode === 'dark' ? 'Light' : 'Dark'}
+                        </button>
                     </div>
                 </nav>
 
@@ -166,8 +188,8 @@ export default function Root() {
                 <nav style={{
                     display: 'flex',
                     alignItems: 'stretch',
-                    background: COLORS.bgCard,
-                    borderTop: `1px solid ${COLORS.border}`,
+                    background: colors.bgCard,
+                    borderTop: `1px solid ${colors.border}`,
                     minHeight: 56,
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     flexShrink: 0,
@@ -191,9 +213,9 @@ export default function Root() {
                                     background: 'none',
                                     border: 'none',
                                     cursor: 'pointer',
-                                    color: isActive ? COLORS.primary : COLORS.muted,
+                                    color: isActive ? colors.primary : colors.muted,
                                     fontSize: 20,
-                                    borderTop: isActive ? `2px solid ${COLORS.primary}` : '2px solid transparent',
+                                    borderTop: isActive ? `2px solid ${colors.primary}` : '2px solid transparent',
                                     transition: 'color 0.2s, border-color 0.2s',
                                     padding: 0,
                                 }}
@@ -218,8 +240,8 @@ export default function Root() {
                 style={{
                     width: railExpanded ? 200 : 60,
                     minWidth: railExpanded ? 200 : 60,
-                    background: COLORS.bgCard,
-                    borderRight: `1px solid ${COLORS.border}`,
+                    background: colors.bgCard,
+                    borderRight: `1px solid ${colors.border}`,
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'width 0.2s ease, min-width 0.2s ease',
@@ -235,15 +257,15 @@ export default function Root() {
                     justifyContent: railExpanded ? 'flex-start' : 'center',
                     gap: 10,
                     padding: railExpanded ? '20px 16px' : '20px 0',
-                    borderBottom: `1px solid ${COLORS.borderSubtle}`,
+                    borderBottom: `1px solid ${colors.borderSubtle}`,
                     overflow: 'hidden',
                     height: 64,
                     flexShrink: 0,
                 }}>
-                    <RobotOutlined style={{fontSize: 24, color: COLORS.primary, flexShrink: 0}}/>
+                    <img src={mode === 'dark' ? '/logo-square.svg' : '/logo-square-dark.svg'} alt="OpenMower" style={{width: 24, height: 24, flexShrink: 0}} />
                     {railExpanded && (
                         <Typography.Text strong style={{
-                            fontSize: 18, color: COLORS.text, whiteSpace: 'nowrap',
+                            fontSize: 18, color: colors.text, whiteSpace: 'nowrap',
                         }}>
                             OpenMower
                         </Typography.Text>
@@ -267,10 +289,10 @@ export default function Root() {
                                     padding: '10px 0',
                                     paddingLeft: railExpanded ? 16 : 0,
                                     justifyContent: railExpanded ? 'flex-start' : 'center',
-                                    background: isActive ? COLORS.primaryBg : 'transparent',
+                                    background: isActive ? colors.primaryBg : 'transparent',
                                     border: 'none',
-                                    borderLeft: isActive ? `3px solid ${COLORS.primary}` : '3px solid transparent',
-                                    color: isActive ? COLORS.primary : COLORS.text,
+                                    borderLeft: isActive ? `3px solid ${colors.primary}` : '3px solid transparent',
+                                    color: isActive ? colors.primary : colors.text,
                                     fontSize: 14,
                                     cursor: 'pointer',
                                     transition: 'background 0.15s, color 0.15s, padding-left 0.2s ease',
@@ -278,7 +300,7 @@ export default function Root() {
                                     whiteSpace: 'nowrap',
                                 }}
                                 onMouseOver={(e) => {
-                                    if (!isActive) e.currentTarget.style.background = COLORS.bgElevated;
+                                    if (!isActive) e.currentTarget.style.background = colors.bgElevated;
                                 }}
                                 onMouseOut={(e) => {
                                     if (!isActive) e.currentTarget.style.background = 'transparent';
@@ -292,6 +314,37 @@ export default function Root() {
                         );
                     })}
                 </div>
+
+                {/* Theme toggle */}
+                <div style={{padding: '8px 0', borderTop: `1px solid ${colors.borderSubtle}`, flexShrink: 0}}>
+                    <button
+                        onClick={toggleMode}
+                        aria-label="Toggle theme"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            width: '100%',
+                            padding: '10px 0',
+                            paddingLeft: railExpanded ? 16 : 0,
+                            justifyContent: railExpanded ? 'flex-start' : 'center',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: colors.text,
+                            fontSize: 14,
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        <span style={{fontSize: 22, flexShrink: 0, width: 28, textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>
+                            <BulbOutlined/>
+                        </span>
+                        {railExpanded && (
+                            <span>{mode === 'dark' ? 'Light' : 'Dark'}</span>
+                        )}
+                    </button>
+                </div>
             </nav>
 
             {/* Main content area */}
@@ -302,15 +355,15 @@ export default function Root() {
                     justifyContent: 'space-between',
                     gap: 12,
                     padding: '0 24px',
-                    background: COLORS.bgCard,
-                    borderBottom: `1px solid ${COLORS.border}`,
+                    background: colors.bgCard,
+                    borderBottom: `1px solid ${colors.border}`,
                     height: 48,
                     lineHeight: '48px',
                     overflow: 'hidden',
                     flexShrink: 0,
                 }}>
                     <Typography.Text strong style={{
-                        fontSize: 16, color: COLORS.text,
+                        fontSize: 16, color: colors.text,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         flexShrink: 1, minWidth: 0,
                     }}>

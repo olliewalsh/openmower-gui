@@ -1,5 +1,6 @@
 import {EnvironmentOutlined, CompassOutlined, StopOutlined, UpOutlined, DownOutlined} from "@ant-design/icons";
 import type {AreaListItem} from "../utils/types.ts";
+import {useThemeMode} from "../../../theme/ThemeContext.tsx";
 
 const TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
     workarea: {color: '#4caf50', icon: <EnvironmentOutlined/>, label: 'Work Area'},
@@ -15,6 +16,7 @@ interface AreasListPanelProps {
 }
 
 export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: AreasListPanelProps) => {
+    const {colors} = useThemeMode();
     const workAreas = areas.filter(a => a.ftype === 'workarea');
     if (areas.length === 0) return null;
 
@@ -25,10 +27,10 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                 padding: '8px 12px',
                 fontSize: 12,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.5)',
+                color: colors.muted,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: `1px solid ${colors.borderSubtle}`,
             }}>
                 Areas ({areas.length})
             </div>
@@ -48,7 +50,7 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                                 gap: 10,
                                 width: '100%',
                                 padding: '10px 12px',
-                                background: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+                                background: isSelected ? colors.bgElevated : 'transparent',
                                 border: 'none',
                                 borderLeft: `3px solid ${cfg.color}`,
                                 cursor: onAreaClick ? 'pointer' : 'default',
@@ -56,7 +58,7 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                                 textAlign: 'left',
                             }}
                             onMouseOver={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                if (!isSelected) e.currentTarget.style.background = colors.bgSubtle;
                             }}
                             onMouseOut={(e) => {
                                 if (!isSelected) e.currentTarget.style.background = 'transparent';
@@ -80,14 +82,14 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                                 <div style={{
                                     fontWeight: 500,
                                     fontSize: 13,
-                                    color: '#e8e8e8',
+                                    color: colors.text,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
                                 }}>
                                     {item.name}
                                 </div>
-                                <div style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1}}>
+                                <div style={{fontSize: 11, color: colors.muted, marginTop: 1}}>
                                     {item.areaLabel}
                                 </div>
                             </div>
@@ -102,7 +104,7 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                                                 disabled={item.mowingOrder <= 1}
                                                 style={{
                                                     background: 'transparent', border: 'none', padding: 0,
-                                                    color: item.mowingOrder <= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+                                                    color: item.mowingOrder <= 1 ? colors.borderSubtle : colors.muted,
                                                     cursor: item.mowingOrder <= 1 ? 'not-allowed' : 'pointer',
                                                     fontSize: 10, lineHeight: 1,
                                                 }}
@@ -115,7 +117,7 @@ export const AreasListPanel = ({areas, onAreaClick, onReorder, selectedId}: Area
                                                 disabled={item.mowingOrder >= workAreas.length}
                                                 style={{
                                                     background: 'transparent', border: 'none', padding: 0,
-                                                    color: item.mowingOrder >= workAreas.length ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+                                                    color: item.mowingOrder >= workAreas.length ? colors.borderSubtle : colors.muted,
                                                     cursor: item.mowingOrder >= workAreas.length ? 'not-allowed' : 'pointer',
                                                     fontSize: 10, lineHeight: 1,
                                                 }}

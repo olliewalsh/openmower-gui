@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {Submit} from '@formily/antd-v5'
 import {CheckCircleOutlined} from '@ant-design/icons'
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 import {Button, Card, Col, Row, Steps, Typography} from "antd";
 import {FlashBoardComponent} from "../components/FlashBoardComponent.tsx";
 import {SettingsComponent} from "../components/SettingsComponent.tsx";
@@ -13,6 +13,7 @@ import {useIsMobile} from "../hooks/useIsMobile";
 const {Step} = Steps;
 
 const SetupWizard: React.FC = () => {
+    const {colors} = useThemeMode();
     const [currentStep, setCurrentStep] = useState(0);
     const isMobile = useIsMobile();
 
@@ -65,7 +66,7 @@ const SetupWizard: React.FC = () => {
                 <Card title={"Setup complete"} key={"complete"}>
                     <Row gutter={[16, 16]}>
                         <Col span={24} style={{textAlign: "center"}}>
-                            <CheckCircleOutlined style={{fontSize: 48, color: COLORS.primary}}
+                            <CheckCircleOutlined style={{fontSize: 48, color: colors.primary}}
                             />
                             <Typography.Title level={2}>Congratulations, your Mower is now fully
                                 configured</Typography.Title>

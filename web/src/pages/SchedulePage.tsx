@@ -5,7 +5,7 @@ import {useApi} from "../hooks/useApi.ts";
 import {useWS} from "../hooks/useWS.ts";
 import {Map as MapType} from "../types/ros.ts";
 import {useIsMobile} from "../hooks/useIsMobile";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 import dayjs from "dayjs";
 
 interface Schedule {
@@ -26,6 +26,7 @@ function areaLabel(index: number, name: string | undefined): string {
 }
 
 export const SchedulePage = () => {
+    const {colors} = useThemeMode();
     const guiApi = useApi();
     const {notification, modal} = App.useApp();
     const isMobile = useIsMobile();
@@ -168,8 +169,8 @@ export const SchedulePage = () => {
                     <div style={{
                         textAlign: 'center',
                         padding: 32,
-                        color: COLORS.textSecondary,
-                        background: COLORS.bgCard,
+                        color: colors.textSecondary,
+                        background: colors.bgCard,
                         borderRadius: 12,
                     }}>
                         No schedules configured yet.
@@ -183,7 +184,7 @@ export const SchedulePage = () => {
 
                     return (
                         <div key={sched.id} style={{
-                            background: COLORS.bgCard,
+                            background: colors.bgCard,
                             borderRadius: 12,
                             padding: 16,
                             display: 'flex',
@@ -228,9 +229,9 @@ export const SchedulePage = () => {
                                                 width: 36,
                                                 height: 36,
                                                 borderRadius: '50%',
-                                                border: `1.5px solid ${isActive ? COLORS.primary : COLORS.border}`,
-                                                background: isActive ? COLORS.primaryBg : 'transparent',
-                                                color: isActive ? COLORS.primary : COLORS.textSecondary,
+                                                border: `1.5px solid ${isActive ? colors.primary : colors.border}`,
+                                                background: isActive ? colors.primaryBg : 'transparent',
+                                                color: isActive ? colors.primary : colors.textSecondary,
                                                 fontSize: 13,
                                                 fontWeight: 600,
                                                 cursor: 'pointer',
@@ -249,10 +250,10 @@ export const SchedulePage = () => {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                borderTop: `1px solid ${COLORS.borderSubtle}`,
+                                borderTop: `1px solid ${colors.borderSubtle}`,
                                 paddingTop: 8,
                             }}>
-                                <span style={{fontSize: 12, color: COLORS.textSecondary}}>
+                                <span style={{fontSize: 12, color: colors.textSecondary}}>
                                     Last: {sched.lastRun ? dayjs(sched.lastRun).format("YYYY-MM-DD HH:mm") : "Never"}
                                 </span>
                                 <Button

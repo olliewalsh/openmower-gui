@@ -1,4 +1,5 @@
 import {useState} from "react";
+import {useThemeMode} from "../../../theme/ThemeContext.tsx";
 import {App, Button, Dropdown, Space} from "antd";
 import type {MenuProps} from "antd";
 import {
@@ -85,25 +86,6 @@ interface MapToolbarMobileProps {
     onBladeOff?: () => Promise<void>;
 }
 
-const toolbarStyle: React.CSSProperties = {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    right: 12,
-    zIndex: 10,
-    display: "flex",
-    gap: 6,
-    justifyContent: "center",
-    alignItems: "center",
-    background: "rgba(20, 20, 20, 0.75)",
-    backdropFilter: "blur(16px) saturate(180%)",
-    WebkitBackdropFilter: "blur(16px) saturate(180%)",
-    borderRadius: 12,
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-    padding: "8px 12px",
-};
-
 export const MapToolbarMobile = ({
     editMap, hasUnsavedChanges, manualMode, useSatellite,
     historyIndex, editHistoryLength, mowingAreas,
@@ -117,8 +99,28 @@ export const MapToolbarMobile = ({
     onAreaRecording, onMowNextArea, onContinueOrPause,
     onBladeForward, onBladeBackward, onBladeOff,
 }: MapToolbarMobileProps) => {
+    const {colors} = useThemeMode();
     const {notification} = App.useApp();
     const [mowLoading, setMowLoading] = useState(false);
+
+    const toolbarStyle: React.CSSProperties = {
+        position: "absolute",
+        bottom: 12,
+        left: 12,
+        right: 12,
+        zIndex: 10,
+        display: "flex",
+        gap: 6,
+        justifyContent: "center",
+        alignItems: "center",
+        background: colors.glassBackground,
+        backdropFilter: "blur(16px) saturate(180%)",
+        WebkitBackdropFilter: "blur(16px) saturate(180%)",
+        borderRadius: 12,
+        border: colors.glassBorder,
+        boxShadow: colors.glassShadow,
+        padding: "8px 12px",
+    };
 
     const isIdle = stateName === "IDLE";
 

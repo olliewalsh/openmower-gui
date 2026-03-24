@@ -1,4 +1,5 @@
 import {InputNumber} from "antd";
+import {useThemeMode} from "../../../theme/ThemeContext.tsx";
 
 interface MapOffsetPanelProps {
     offsetX: number;
@@ -7,12 +8,14 @@ interface MapOffsetPanelProps {
     onChangeY: (v: number) => void;
 }
 
-export const MapOffsetPanel = ({offsetX, offsetY, onChangeX, onChangeY}: MapOffsetPanelProps) => (
+export const MapOffsetPanel = ({offsetX, offsetY, onChangeX, onChangeY}: MapOffsetPanelProps) => {
+    const {colors} = useThemeMode();
+    return (
     <div>
         <div style={{
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.5)',
+            color: colors.muted,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.05em',
             marginBottom: 6,
@@ -21,13 +24,14 @@ export const MapOffsetPanel = ({offsetX, offsetY, onChangeX, onChangeY}: MapOffs
         </div>
         <div style={{display: 'flex', gap: 8}}>
             <div style={{flex: 1}}>
-                <label style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2}}>X</label>
+                <label style={{fontSize: 11, color: colors.textSecondary, display: 'block', marginBottom: 2}}>X</label>
                 <InputNumber size="small" value={offsetX} onChange={(v) => onChangeX(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
             </div>
             <div style={{flex: 1}}>
-                <label style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2}}>Y</label>
+                <label style={{fontSize: 11, color: colors.textSecondary, display: 'block', marginBottom: 2}}>Y</label>
                 <InputNumber size="small" value={offsetY} onChange={(v) => onChangeY(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
             </div>
         </div>
     </div>
-);
+    );
+};

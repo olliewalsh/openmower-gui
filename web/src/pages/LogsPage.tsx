@@ -6,11 +6,12 @@ import {useWS} from "../hooks/useWS.ts";
 import {useApi} from "../hooks/useApi.ts";
 import {StyledTerminal} from "../components/StyledTerminal.tsx";
 import ansiHTML from "../utils/ansi.ts";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 import {useIsMobile} from "../hooks/useIsMobile";
 
 type ContainerList = { value: string, label: string, status: "started" | "stopped", labels: Record<string, string> };
 export const LogsPage = () => {
+    const {colors} = useThemeMode();
     const guiApi = useApi();
     const {notification} = App.useApp();
     const isMobile = useIsMobile();
@@ -122,7 +123,7 @@ export const LogsPage = () => {
                 flexDirection: isMobile ? 'column' : 'row',
                 gap: 8,
                 alignItems: isMobile ? 'stretch' : 'center',
-                background: COLORS.bgCard,
+                background: colors.bgCard,
                 borderRadius: 12,
                 padding: 12,
                 flexShrink: 0,

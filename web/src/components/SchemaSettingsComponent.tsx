@@ -3,7 +3,7 @@ import { Card, Col, Row, Spin, Switch, Input, InputNumber, Select, Form, Button,
 import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { JSONSchemaProperty, JSONSchemaCondition, useSettingsSchema } from "../hooks/useSettingsSchema.ts";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { COLORS } from "../theme/colors.ts";
+import { useThemeMode } from "../theme/ThemeContext.tsx";
 
 type FieldRenderProps = {
     name: string;
@@ -275,6 +275,7 @@ export const SchemaSettingsComponent: React.FC<{
     onRestartGUI?: () => Promise<void>;
 }> = (props) => {
     const isMobile = useIsMobile();
+    const { colors } = useThemeMode();
     const { schema, values: savedValues, saveValues, loading } = useSettingsSchema();
     const [localValues, setLocalValues] = useState<Record<string, any>>({});
     const [customEnv, setCustomEnv] = useState<Record<string, string>>({});
@@ -331,8 +332,8 @@ export const SchemaSettingsComponent: React.FC<{
                 left: isMobile ? 0 : undefined,
                 right: isMobile ? 0 : undefined,
                 padding: isMobile ? '8px 12px' : undefined,
-                background: isMobile ? COLORS.bgCard : undefined,
-                borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+                background: isMobile ? colors.bgCard : undefined,
+                borderTop: isMobile ? `1px solid ${colors.border}` : undefined,
                 zIndex: 50,
             }}>
                 <Space wrap={isMobile} size={isMobile ? 8 : undefined}>

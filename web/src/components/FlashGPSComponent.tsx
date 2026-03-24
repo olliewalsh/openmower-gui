@@ -6,10 +6,11 @@ import {StyledTerminal} from "./StyledTerminal.tsx";
 import Terminal, {ColorMode, TerminalOutput} from "react-terminal-ui";
 import AsyncButton from "./AsyncButton.tsx";
 import {useIsMobile} from "../hooks/useIsMobile";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 
 export const FlashGPSComponent = (props: { onNext: () => void, onPrevious: () => void }) => {
     const isMobile = useIsMobile();
+    const {colors} = useThemeMode();
     const {notification} = App.useApp();
     const [data, setData] = useState<string[]>()
     const flashGPS = async () => {
@@ -108,8 +109,8 @@ export const FlashGPSComponent = (props: { onNext: () => void, onPrevious: () =>
             left: isMobile ? 0 : undefined,
             right: isMobile ? 0 : undefined,
             padding: isMobile ? '8px 12px' : undefined,
-            background: isMobile ? COLORS.bgCard : undefined,
-            borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+            background: isMobile ? colors.bgCard : undefined,
+            borderTop: isMobile ? `1px solid ${colors.border}` : undefined,
             zIndex: 50,
         }}>
             <FormButtonGroup>

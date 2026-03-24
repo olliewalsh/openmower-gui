@@ -10,13 +10,14 @@ import {useStatus} from "../hooks/useStatus.ts";
 import {usePower} from "../hooks/usePower.ts";
 import {useEmergency} from "../hooks/useEmergency.ts";
 import {useDockingSensor} from "../hooks/useDockingSensor.ts";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 
 const StatusTag = ({label, active, color}: { label: string; active: boolean; color?: string }) => (
     <Tag color={active ? (color ?? "green") : "default"}>{label}</Tag>
 );
 
 export function StatusComponent({compact}: {compact?: boolean}) {
+    const {colors} = useThemeMode();
     const status = useStatus();
     const power = usePower();
     const emergency = useEmergency();
@@ -29,13 +30,13 @@ export function StatusComponent({compact}: {compact?: boolean}) {
             <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
                 {/* Combined: System Status + Emergency + Docking */}
                 <div style={{
-                    background: COLORS.bgCard,
+                    background: colors.bgCard,
                     borderRadius: 12,
                     padding: 16,
                 }}>
                     <Space style={{marginBottom: 8}}>
-                        <ApiOutlined style={{color: COLORS.textSecondary}}/>
-                        <span style={{color: COLORS.textSecondary, fontSize: 13, fontWeight: 500}}>System & Safety</span>
+                        <ApiOutlined style={{color: colors.textSecondary}}/>
+                        <span style={{color: colors.textSecondary, fontSize: 13, fontWeight: 500}}>System & Safety</span>
                     </Space>
                     <Flex wrap gap="small" style={{marginBottom: 8}}>
                         <StatusTag label={`Mower: ${mowerStatusLabel}`} active={status.MowerStatus === 255}/>
@@ -44,7 +45,7 @@ export function StatusComponent({compact}: {compact?: boolean}) {
                         <StatusTag label={status.RainDetected ? "Rain" : "No Rain"}
                                    active={!!status.RainDetected} color="blue"/>
                     </Flex>
-                    <div style={{borderTop: `1px solid ${COLORS.borderSubtle}`, paddingTop: 8, marginBottom: 8}}>
+                    <div style={{borderTop: `1px solid ${colors.borderSubtle}`, paddingTop: 8, marginBottom: 8}}>
                         <Flex wrap gap="small">
                             <StatusTag label={emergency.ActiveEmergency ? "EMERGENCY" : "Clear"}
                                        active={!!emergency.ActiveEmergency} color="red"/>
@@ -60,13 +61,13 @@ export function StatusComponent({compact}: {compact?: boolean}) {
 
                 {/* Combined: Power + Motor */}
                 <div style={{
-                    background: COLORS.bgCard,
+                    background: colors.bgCard,
                     borderRadius: 12,
                     padding: 16,
                 }}>
                     <Space style={{marginBottom: 8}}>
-                        <ThunderboltOutlined style={{color: COLORS.textSecondary}}/>
-                        <span style={{color: COLORS.textSecondary, fontSize: 13, fontWeight: 500}}>Power & Motor</span>
+                        <ThunderboltOutlined style={{color: colors.textSecondary}}/>
+                        <span style={{color: colors.textSecondary, fontSize: 13, fontWeight: 500}}>Power & Motor</span>
                     </Space>
                     <Row gutter={[12, 8]}>
                         <Col span={8}>
@@ -82,7 +83,7 @@ export function StatusComponent({compact}: {compact?: boolean}) {
                                        valueStyle={{fontSize: 16}}/>
                         </Col>
                     </Row>
-                    <div style={{borderTop: `1px solid ${COLORS.borderSubtle}`, paddingTop: 8, marginTop: 8}}>
+                    <div style={{borderTop: `1px solid ${colors.borderSubtle}`, paddingTop: 8, marginTop: 8}}>
                         <Row gutter={[12, 8]}>
                             <Col span={8}>
                                 <Statistic title="RPM" value={status.MowerMotorRpm} precision={0}

@@ -12,7 +12,7 @@ import SetupPage from "./pages/SetupPage.tsx";
 import SchedulePage from "./pages/SchedulePage.tsx";
 import {App, ConfigProvider, theme} from "antd";
 import {Spinner} from "./components/Spinner.tsx";
-import {COLORS} from "./theme/colors.ts";
+import {ThemeProvider, useThemeMode} from "./theme/ThemeContext.tsx";
 
 const router = createHashRouter([
     {
@@ -47,29 +47,57 @@ const router = createHashRouter([
     },
 ]);
 
+function ThemedApp() {
+    const {mode, colors} = useThemeMode();
+
+    return (
+        <ConfigProvider theme={{
+            algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+            token: {
+                colorPrimary: colors.primary,
+                colorSuccess: colors.success,
+                colorWarning: colors.warning,
+                colorError: colors.danger,
+                colorInfo: colors.info,
+                colorBgContainer: colors.bgCard,
+                colorBgLayout: colors.bgBase,
+                colorBorder: colors.border,
+                colorText: colors.text,
+                colorTextSecondary: colors.textSecondary,
+                borderRadius: 12,
+                fontFamily: '"DM Sans", "DM Sans Variable", sans-serif',
+                fontFamilyCode: '"DM Mono", monospace',
+            },
+            components: {
+                Card: {
+                    colorBorderSecondary: mode === 'dark' ? 'transparent' : colors.border,
+                },
+                Button: {
+                    borderRadius: 8,
+                },
+                Input: {
+                    colorBgContainer: colors.bgElevated,
+                    activeBorderColor: colors.accent,
+                    hoverBorderColor: colors.accent,
+                },
+                Select: {
+                    colorBgContainer: colors.bgElevated,
+                },
+            },
+        }}>
+            <App style={{height: "100%"}}>
+                <React.Suspense fallback={<Spinner/>}>
+                    <RouterProvider router={router}/>
+                </React.Suspense>
+            </App>
+        </ConfigProvider>
+    );
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-      <ConfigProvider theme={{
-          algorithm: theme.darkAlgorithm,
-          token: {
-              colorPrimary: COLORS.primary,
-              colorBgContainer: COLORS.bgCard,
-              colorBgLayout: COLORS.bgBase,
-              colorBorder: COLORS.border,
-              colorText: COLORS.text,
-              borderRadius: 12,
-          },
-          components: {
-              Card: {
-                  colorBorderSecondary: 'transparent',
-              },
-          },
-      }}>
-          <App style={{height: "100%"}}>
-              <React.Suspense fallback={<Spinner/>}>
-                  <RouterProvider router={router}/>
-              </React.Suspense>
-          </App>
-      </ConfigProvider>
+      <ThemeProvider>
+          <ThemedApp/>
+      </ThemeProvider>
   </React.StrictMode>,
 )

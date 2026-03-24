@@ -1,9 +1,10 @@
 import {useNavigate} from "react-router-dom";
 import {useSettings} from "../hooks/useSettings.ts";
-import {COLORS} from "../theme/colors.ts";
+import {useThemeMode} from "../theme/ThemeContext.tsx";
 import {MapPage} from "../pages/MapPage.tsx";
 
 export const MiniMap: React.FC<{height?: number}> = ({height = 180}) => {
+    const {colors} = useThemeMode();
     const navigate = useNavigate();
     const {settings} = useSettings();
 
@@ -18,12 +19,12 @@ export const MiniMap: React.FC<{height?: number}> = ({height = 180}) => {
                 style={{
                     height,
                     borderRadius: 12,
-                    background: COLORS.bgCard,
+                    background: colors.bgCard,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: COLORS.textSecondary,
+                    color: colors.textSecondary,
                     fontSize: 14,
                 }}
             >
@@ -58,7 +59,7 @@ export const MiniMap: React.FC<{height?: number}> = ({height = 180}) => {
                 borderRadius: 6,
                 padding: '2px 8px',
                 fontSize: 11,
-                color: COLORS.textSecondary,
+                color: colors.textSecondary,
                 zIndex: 2,
             }}>
                 Tap to expand
