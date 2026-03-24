@@ -320,7 +320,7 @@ func ServiceRoute(group *gin.RouterGroup, provider types.IRosProvider) {
 			if err != nil {
 				return
 			}
-			err = provider.CallService(c.Request.Context(), "/mower_service/emergency", &mower_msgs.EmergencyStopSrv{}, &CallReq, &mower_msgs.EmergencyStopSrvRes{})
+			err = provider.CallService(c.Request.Context(), "/ll/_service/emergency", &mower_msgs.EmergencyStopSrv{}, &CallReq, &mower_msgs.EmergencyStopSrvRes{})
 		case "mower_logic":
 			var CallReq dynamic_reconfigure.ReconfigureReq
 			err = c.BindJSON(&CallReq)
@@ -334,7 +334,7 @@ func ServiceRoute(group *gin.RouterGroup, provider types.IRosProvider) {
 			if err != nil {
 				return
 			}
-			err = provider.CallService(c.Request.Context(), "/mower_service/mow_enabled", &mower_msgs.MowerControlSrv{}, &CallReq, &mower_msgs.MowerControlSrvRes{})
+			err = provider.CallService(c.Request.Context(), "/ll/_service/mow_enabled", &mower_msgs.MowerControlSrv{}, &CallReq, &mower_msgs.MowerControlSrvRes{})
 		case "start_in_area":
 			var CallReq mower_msgs.StartInAreaSrvReq
 			err = c.BindJSON(&CallReq)

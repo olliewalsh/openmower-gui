@@ -52,7 +52,7 @@ func TestServiceRoute_Emergency(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	require.Len(t, mock.ServiceCalls, 1)
-	assert.Equal(t, "/mower_service/emergency", mock.ServiceCalls[0].SrvName)
+	assert.Equal(t, "/ll/_service/emergency", mock.ServiceCalls[0].SrvName)
 }
 
 func TestServiceRoute_MowEnabled(t *testing.T) {
@@ -69,7 +69,7 @@ func TestServiceRoute_MowEnabled(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	require.Len(t, mock.ServiceCalls, 1)
-	assert.Equal(t, "/mower_service/mow_enabled", mock.ServiceCalls[0].SrvName)
+	assert.Equal(t, "/ll/_service/mow_enabled", mock.ServiceCalls[0].SrvName)
 }
 
 func TestServiceRoute_MowerLogic(t *testing.T) {
