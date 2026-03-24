@@ -313,7 +313,7 @@ export const SchemaSettingsComponent: React.FC<{
 
     return (
         <Row>
-            <Col span={24} style={{ height: "80vh", overflowY: "auto", paddingBottom: 80, ...props.contentStyle }}>
+            <Col span={24} style={{ height: isMobile ? "auto" : "80vh", overflowY: isMobile ? undefined : "auto", paddingBottom: 80, ...props.contentStyle }}>
                 {Object.entries(sections).map(([key, section]) => (
                     <SchemaSection
                         key={key}

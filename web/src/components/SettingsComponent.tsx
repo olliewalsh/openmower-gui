@@ -127,7 +127,7 @@ export const SettingsComponent: React.FC<{
 
     return <Row>
         <Form form={form} style={{width: '100%'}}>
-            <Col span={24} style={{height: '80vh', overflowY: 'auto', ...props.contentStyle}}>
+            <Col span={24} style={{...(!isMobile ? {height: '80vh', overflowY: 'auto' as const} : {paddingBottom: 80}), ...(!isMobile ? props.contentStyle : undefined)}}>
                 <FormLayout layout="vertical">
                     {
                         Object.keys(sections).map(section => {

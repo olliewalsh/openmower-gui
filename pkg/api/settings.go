@@ -9,12 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"os"
+	"strings"
+
 	"github.com/cedbossneo/openmower-gui/pkg/types"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
-	"os"
-	"strings"
 )
 
 const defaultSchemaURL = "https://raw.githubusercontent.com/ClemensElflein/OpenMowerMeta/main/backend/src/main/resources/assets/open_mower.default.schema.json"
@@ -281,7 +282,7 @@ func applyMowgliGPSOverlay(props map[string]any) {
 			"default": "UBX",
 		},
 		"OM_GPS_BAUDRATE": {
-			"default": "921600",
+			"default": "460800",
 			"title":   "GPS Baud Rate",
 		},
 	}
@@ -362,7 +363,6 @@ func promoteAdvancedSection(props map[string]any, sectionKey string, overrides m
 		delete(section, "allOf")
 	}
 }
-
 
 // GetSettingsSchema returns the JSON Schema describing all mower configuration parameters.
 // It fetches the schema from the upstream OpenMower repository and caches it,

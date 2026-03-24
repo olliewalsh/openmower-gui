@@ -175,7 +175,7 @@ export const FlashBoardComponent = (props: { onNext: () => void }) => {
     };
     return <Form form={form}>
         <Row>
-            <Col span={24} style={{height: "55vh", overflowY: "auto"}}>
+            <Col span={24} style={{height: isMobile ? "auto" : "55vh", overflowY: isMobile ? undefined : "auto", paddingBottom: isMobile ? 80 : undefined}}>
                 <FormLayout layout="vertical">
                     <SchemaField><SchemaField.String
                         name={"boardType"}

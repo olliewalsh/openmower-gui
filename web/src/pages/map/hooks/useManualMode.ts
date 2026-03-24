@@ -1,6 +1,8 @@
-import {useState} from "react";
+import {useCallback, useRef, useState} from "react";
 import type {Twist} from "../../../types/ros.ts";
 import type {IJoystickUpdateEvent} from "react-joystick-component/build/lib/Joystick";
+
+const JOY_SEND_INTERVAL_MS = 100;
 
 interface UseManualModeOptions {
     mowerAction: (action: string, params: Record<string, unknown>) => () => Promise<void>;
@@ -9,6 +11,22 @@ interface UseManualModeOptions {
 
 export function useManualMode({mowerAction, joyStream}: UseManualModeOptions) {
     const [manualMode, setManualMode] = useState<number | undefined>();
+    const lastTwistRef = useRef<Twist | null>(null);
+    const joyIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+    const startJoyInterval = useCallback(() => {
+        clearInterval(joyIntervalRef.current);
+        joyIntervalRef.current = setInterval(() => {
+            if (lastTwistRef.current) {
+                joyStream.sendJsonMessage(lastTwistRef.current);
+            }
+        }, JOY_SEND_INTERVAL_MS);
+    }, [joyStream]);
+
+    const stopJoyInterval = useCallback(() => {
+        clearInterval(joyIntervalRef.current);
+        joyIntervalRef.current = undefined;
+    }, []);
 
     const handleManualMode = async () => {
         await mowerAction("high_level_control", {Command: 3})();
@@ -23,24 +41,33 @@ export function useManualMode({mowerAction, joyStream}: UseManualModeOptions) {
         await mowerAction("high_level_control", {Command: 2})();
         clearInterval(manualMode);
         setManualMode(undefined);
+        stopJoyInterval();
+        lastTwistRef.current = null;
         await mowerAction("mow_enabled", {MowEnabled: 0, MowDirection: 0})();
     };
 
-    const handleJoyMove = (event: IJoystickUpdateEvent) => {
+    const handleJoyMove = useCallback((event: IJoystickUpdateEvent) => {
         const msg: Twist = {
             Linear: {X: event.y ?? 0, Y: 0, Z: 0},
             Angular: {Z: (event.x ?? 0) * -1, X: 0, Y: 0},
         };
+        lastTwistRef.current = msg;
         joyStream.sendJsonMessage(msg);
-    };
+        // Start the repeat interval if not already running
+        if (!joyIntervalRef.current) {
+            startJoyInterval();
+        }
+    }, [joyStream, startJoyInterval]);
 
-    const handleJoyStop = () => {
+    const handleJoyStop = useCallback(() => {
         const msg: Twist = {
             Linear: {X: 0, Y: 0, Z: 0},
             Angular: {Z: 0, X: 0, Y: 0},
         };
+        lastTwistRef.current = null;
+        stopJoyInterval();
         joyStream.sendJsonMessage(msg);
-    };
+    }, [joyStream, stopJoyInterval]);
 
     return {manualMode, handleManualMode, handleStopManualMode, handleJoyMove, handleJoyStop};
 }
