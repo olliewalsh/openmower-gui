@@ -1,5 +1,5 @@
 import reactUseWebSocketModule from "react-use-websocket";
-import {useState} from "react";
+import {useRef, useState} from "react";
 
 // Vite 8 CJS interop may wrap the default export differently at runtime
 const useWebSocket = (reactUseWebSocketModule as unknown as { default: typeof reactUseWebSocketModule }).default ?? reactUseWebSocketModule;
@@ -7,25 +7,34 @@ const useWebSocket = (reactUseWebSocketModule as unknown as { default: typeof re
 export const useWS = <T>(onError: (e: Error) => void, onInfo: (msg: string) => void, onData: (data: T, first?: boolean) => void) => {
     const [uri, setUri] = useState<string | null>(null);
     const [first, setFirst] = useState(false)
+
+    // Keep refs to always call the latest callbacks, avoiding stale closures
+    const onDataRef = useRef(onData);
+    onDataRef.current = onData;
+    const onErrorRef = useRef(onError);
+    onErrorRef.current = onError;
+    const onInfoRef = useRef(onInfo);
+    onInfoRef.current = onInfo;
+
     const ws = useWebSocket(uri, {
         share: true,
         onOpen: () => {
             console.log(`Opened stream ${uri}`)
-            onInfo("Stream connected")
+            onInfoRef.current("Stream connected")
         },
         onError: () => {
             console.log(`Error on stream ${uri}`)
-            onError(new Error(`Stream error`))
+            onErrorRef.current(new Error(`Stream error`))
         },
         onClose: () => {
             console.log(`Stream closed ${uri}`)
-            onError(new Error(`Stream closed`))
+            onErrorRef.current(new Error(`Stream closed`))
         },
         onMessage: (e: MessageEvent) => {
             if (first) {
                 setFirst(false)
             }
-            onData(atob(e.data) as T, first);
+            onDataRef.current(atob(e.data) as T, first);
         }
     });
     const start = (uri: string) => {

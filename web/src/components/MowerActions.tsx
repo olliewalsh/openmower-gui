@@ -28,7 +28,7 @@ export const useMowerAction = () => {
     };
 };
 
-export const MowerActions: React.FC<React.PropsWithChildren> = (props) => {
+export const MowerActions: React.FC<React.PropsWithChildren<{bare?: boolean}>> = (props) => {
     const {highLevelStatus} = useHighLevelStatus();
     const mowerAction = useMowerAction()
     const actionMenuItems: {
@@ -130,7 +130,7 @@ export const MowerActions: React.FC<React.PropsWithChildren> = (props) => {
     } else if (children) {
         children = <Col>{children}</Col>
     }
-    return <ActionsCard title={"Actions"} size={"small"}>
+    const content = (
         <Row gutter={[8, 8]} justify={"start"}>
             {children}
             {children ? <Col><Divider type={"vertical"}/></Col> : null}
@@ -164,5 +164,13 @@ export const MowerActions: React.FC<React.PropsWithChildren> = (props) => {
                 </AsyncDropDownButton>
             </Col>
         </Row>
+    );
+
+    if (props.bare) {
+        return content;
+    }
+
+    return <ActionsCard title={"Actions"} size={"small"}>
+        {content}
     </ActionsCard>;
 };

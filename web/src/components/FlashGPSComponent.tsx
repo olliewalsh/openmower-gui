@@ -5,8 +5,11 @@ import {FormButtonGroup} from "@formily/antd-v5";
 import {StyledTerminal} from "./StyledTerminal.tsx";
 import Terminal, {ColorMode, TerminalOutput} from "react-terminal-ui";
 import AsyncButton from "./AsyncButton.tsx";
+import {useIsMobile} from "../hooks/useIsMobile";
+import {COLORS} from "../theme/colors.ts";
 
 export const FlashGPSComponent = (props: { onNext: () => void, onPrevious: () => void }) => {
+    const isMobile = useIsMobile();
     const {notification} = App.useApp();
     const [data, setData] = useState<string[]>()
     const flashGPS = async () => {
@@ -99,7 +102,16 @@ export const FlashGPSComponent = (props: { onNext: () => void, onPrevious: () =>
                 </StyledTerminal>
             </Modal>
         </Col>
-        <Col span={24} style={{position: "fixed", bottom: 20}}>
+        <Col span={24} style={{
+            position: "fixed",
+            bottom: isMobile ? 56 : 20,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            padding: isMobile ? '8px 12px' : undefined,
+            background: isMobile ? COLORS.bgCard : undefined,
+            borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+            zIndex: 50,
+        }}>
             <FormButtonGroup>
                 <Button onClick={props.onPrevious}>Previous</Button>
                 <AsyncButton type={"primary"} onAsyncClick={flashGPS}>Flash GPS Configuration</AsyncButton>

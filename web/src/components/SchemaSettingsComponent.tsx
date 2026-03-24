@@ -2,6 +2,8 @@ import React, { CSSProperties, useCallback, useEffect, useState } from "react";
 import { Card, Col, Row, Spin, Switch, Input, InputNumber, Select, Form, Button, Space, Typography } from "antd";
 import { SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { JSONSchemaProperty, JSONSchemaCondition, useSettingsSchema } from "../hooks/useSettingsSchema.ts";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { COLORS } from "../theme/colors.ts";
 
 type FieldRenderProps = {
     name: string;
@@ -272,6 +274,7 @@ export const SchemaSettingsComponent: React.FC<{
     onRestartOM?: () => Promise<void>;
     onRestartGUI?: () => Promise<void>;
 }> = (props) => {
+    const isMobile = useIsMobile();
     const { schema, values: savedValues, saveValues, loading } = useSettingsSchema();
     const [localValues, setLocalValues] = useState<Record<string, any>>({});
     const [customEnv, setCustomEnv] = useState<Record<string, string>>({});
@@ -322,8 +325,17 @@ export const SchemaSettingsComponent: React.FC<{
                     />
                 ))}
             </Col>
-            <Col span={24} style={{ position: "fixed", bottom: 20 }}>
-                <Space>
+            <Col span={24} style={{
+                position: "fixed",
+                bottom: isMobile ? 56 : 20,
+                left: isMobile ? 0 : undefined,
+                right: isMobile ? 0 : undefined,
+                padding: isMobile ? '8px 12px' : undefined,
+                background: isMobile ? COLORS.bgCard : undefined,
+                borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+                zIndex: 50,
+            }}>
+                <Space wrap={isMobile} size={isMobile ? 8 : undefined}>
                     <Button
                         type="primary"
                         icon={<SaveOutlined />}

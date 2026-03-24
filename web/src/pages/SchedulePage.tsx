@@ -1,9 +1,11 @@
-import {App, Button, Card, Checkbox, Col, Row, Select, Switch, TimePicker, Table, Space, Popconfirm} from "antd";
-import {ClockCircleOutlined, DeleteOutlined, PlusOutlined} from "@ant-design/icons";
+import {App, Button, Card, Checkbox, Col, Row, Select, Switch, TimePicker, Table, Space} from "antd";
+import {ClockCircleOutlined, DeleteOutlined, PlusOutlined, ExclamationCircleOutlined} from "@ant-design/icons";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useApi} from "../hooks/useApi.ts";
 import {useWS} from "../hooks/useWS.ts";
 import {Map as MapType} from "../types/ros.ts";
+import {useIsMobile} from "../hooks/useIsMobile";
+import {COLORS} from "../theme/colors.ts";
 import dayjs from "dayjs";
 
 interface Schedule {
@@ -17,6 +19,7 @@ interface Schedule {
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function areaLabel(index: number, name: string | undefined): string {
     return name ? `${index + 1}. ${name}` : `Area ${index + 1}`;
@@ -24,19 +27,16 @@ function areaLabel(index: number, name: string | undefined): string {
 
 export const SchedulePage = () => {
     const guiApi = useApi();
-    const {notification} = App.useApp();
+    const {notification, modal} = App.useApp();
+    const isMobile = useIsMobile();
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [loading, setLoading] = useState(false);
     const [workingAreas, setWorkingAreas] = useState<Array<string | undefined>>([]);
     const fetchedRef = useRef(false);
 
     const mapStream = useWS<string>(
-        () => {
-            console.log("SchedulePage: map stream closed");
-        },
-        () => {
-            console.log("SchedulePage: map stream connected");
-        },
+        () => { console.log("SchedulePage: map stream closed"); },
+        () => { console.log("SchedulePage: map stream connected"); },
         (data) => {
             const parsed = JSON.parse(data) as MapType;
             const names = (parsed.WorkingArea ?? []).map((a) => a.Name);
@@ -46,10 +46,7 @@ export const SchedulePage = () => {
 
     useEffect(() => {
         mapStream.start("/api/openmower/subscribe/map");
-        return () => {
-            mapStream.stop();
-        };
-        // mapStream functions are stable across renders — intentionally omitting from deps
+        return () => { mapStream.stop(); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -131,6 +128,149 @@ export const SchedulePage = () => {
         }
     };
 
+    const confirmDelete = (id: string) => {
+        modal.confirm({
+            title: "Delete schedule",
+            icon: <ExclamationCircleOutlined/>,
+            content: "Are you sure you want to delete this schedule?",
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: () => handleDelete(id),
+        });
+    };
+
+    const toggleDay = (sched: Schedule, day: number) => {
+        const days = sched.daysOfWeek.includes(day)
+            ? sched.daysOfWeek.filter(d => d !== day)
+            : [...sched.daysOfWeek, day];
+        handleUpdate({...sched, daysOfWeek: days});
+    };
+
+    // Mobile card-based layout — title comes from the page header, no duplicate
+    if (isMobile) {
+        return (
+            <div style={{display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8}}>
+                <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined/>}
+                        onClick={handleCreate}
+                        loading={loading}
+                        size="large"
+                        style={{borderRadius: 12, height: 44, paddingInline: 24}}
+                    >
+                        Add Schedule
+                    </Button>
+                </div>
+
+                {schedules.length === 0 && (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: 32,
+                        color: COLORS.textSecondary,
+                        background: COLORS.bgCard,
+                        borderRadius: 12,
+                    }}>
+                        No schedules configured yet.
+                    </div>
+                )}
+
+                {schedules.map(sched => {
+                    const optionsWithCurrent = areaOptions.some((o) => o.value === sched.area)
+                        ? areaOptions
+                        : [...areaOptions, {label: areaLabel(sched.area, undefined), value: sched.area}];
+
+                    return (
+                        <div key={sched.id} style={{
+                            background: COLORS.bgCard,
+                            borderRadius: 12,
+                            padding: 16,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 12,
+                        }}>
+                            {/* Row 1: Switch + Area */}
+                            <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                                <Switch
+                                    checked={sched.enabled}
+                                    onChange={(checked) => handleUpdate({...sched, enabled: checked})}
+                                />
+                                <Select
+                                    value={sched.area}
+                                    size="small"
+                                    style={{flex: 1}}
+                                    options={optionsWithCurrent}
+                                    onChange={(val) => handleUpdate({...sched, area: val})}
+                                />
+                            </div>
+
+                            {/* Row 2: Time picker */}
+                            <TimePicker
+                                value={dayjs(sched.time, "HH:mm")}
+                                format="HH:mm"
+                                onChange={(val) => {
+                                    if (val) handleUpdate({...sched, time: val.format("HH:mm")});
+                                }}
+                                style={{width: '100%'}}
+                                size="large"
+                            />
+
+                            {/* Row 3: Day circle toggles */}
+                            <div style={{display: 'flex', gap: 6, justifyContent: 'space-between'}}>
+                                {DAY_LETTERS.map((letter, i) => {
+                                    const isActive = sched.daysOfWeek.includes(i);
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => toggleDay(sched, i)}
+                                            style={{
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: '50%',
+                                                border: `1.5px solid ${isActive ? COLORS.primary : COLORS.border}`,
+                                                background: isActive ? COLORS.primaryBg : 'transparent',
+                                                color: isActive ? COLORS.primary : COLORS.textSecondary,
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s',
+                                                padding: 0,
+                                            }}
+                                        >
+                                            {letter}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Row 4: Last run + delete */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderTop: `1px solid ${COLORS.borderSubtle}`,
+                                paddingTop: 8,
+                            }}>
+                                <span style={{fontSize: 12, color: COLORS.textSecondary}}>
+                                    Last: {sched.lastRun ? dayjs(sched.lastRun).format("YYYY-MM-DD HH:mm") : "Never"}
+                                </span>
+                                <Button
+                                    type="text"
+                                    danger
+                                    icon={<DeleteOutlined/>}
+                                    size="small"
+                                    onClick={() => confirmDelete(sched.id)}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    // Desktop table layout
     const columns = [
         {
             title: "Enabled",
@@ -205,9 +345,13 @@ export const SchedulePage = () => {
             key: "actions",
             width: 50,
             render: (_: unknown, record: Schedule) => (
-                <Popconfirm title="Delete this schedule?" onConfirm={() => handleDelete(record.id)}>
-                    <Button type="text" danger icon={<DeleteOutlined/>} size="small"/>
-                </Popconfirm>
+                <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined/>}
+                    size="small"
+                    onClick={() => confirmDelete(record.id)}
+                />
             ),
         },
     ];
@@ -224,9 +368,8 @@ export const SchedulePage = () => {
                             icon={<PlusOutlined/>}
                             onClick={handleCreate}
                             loading={loading}
-                            size="small"
                         >
-                            Add
+                            Add Schedule
                         </Button>
                     }
                 >
@@ -237,7 +380,7 @@ export const SchedulePage = () => {
                         pagination={false}
                         size="small"
                         scroll={{x: 600}}
-                        locale={{emptyText: "No schedules configured. Click 'Add' to create one."}}
+                        locale={{emptyText: "No schedules configured. Click 'Add Schedule' to create one."}}
                     />
                 </Card>
             </Col>

@@ -57,7 +57,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               colorBgLayout: COLORS.bgBase,
               colorBorder: COLORS.border,
               colorText: COLORS.text,
-              borderRadius: 8,
+              borderRadius: 12,
+          },
+          components: {
+              Card: {
+                  colorBorderSecondary: 'transparent',
+              },
           },
       }}>
           <App style={{height: "100%"}}>

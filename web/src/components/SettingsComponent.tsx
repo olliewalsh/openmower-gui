@@ -7,6 +7,8 @@ import type {Form as FormType} from "@formily/core";
 import {createForm, onFieldValueChange} from "@formily/core";
 
 import {SettingsConfig, SettingsDesc, SettingValueType, useSettings} from "../hooks/useSettings.ts";
+import {useIsMobile} from "../hooks/useIsMobile";
+import {COLORS} from "../theme/colors.ts";
 
 const SchemaField = createSchemaField({
     components: {
@@ -51,6 +53,7 @@ export const SettingsComponent: React.FC<{
 
     const guiApi = useApi()
     const {notification} = App.useApp();
+    const isMobile = useIsMobile();
     const {settings, setSettings, loading} = useSettings()
     useEffect(() => {
         if (settings && Object.keys(settings).length > 0) {
@@ -209,7 +212,16 @@ export const SettingsComponent: React.FC<{
                     }
                 </FormLayout>
             </Col>
-            <Col span={24} style={{position: "fixed", bottom: 20}}>
+            <Col span={24} style={{
+                position: "fixed",
+                bottom: isMobile ? 56 : 20,
+                left: isMobile ? 0 : undefined,
+                right: isMobile ? 0 : undefined,
+                padding: isMobile ? '8px 12px' : undefined,
+                background: isMobile ? COLORS.bgCard : undefined,
+                borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+                zIndex: 50,
+            }}>
                 <FormButtonGroup.FormItem>
                     {props.actions && props.actions(form, setSettings, restartOpenMower, restartGui)}
                 </FormButtonGroup.FormItem>

@@ -1,4 +1,4 @@
-import {App, Col, Row, Select} from "antd";
+import {App, Select, Space} from "antd";
 import {useEffect, useState} from "react";
 import Terminal, {ColorMode, TerminalOutput} from "react-terminal-ui";
 import AsyncButton from "../components/AsyncButton.tsx";
@@ -6,12 +6,14 @@ import {useWS} from "../hooks/useWS.ts";
 import {useApi} from "../hooks/useApi.ts";
 import {StyledTerminal} from "../components/StyledTerminal.tsx";
 import ansiHTML from "../utils/ansi.ts";
-import {MowerActions} from "../components/MowerActions.tsx";
+import {COLORS} from "../theme/colors.ts";
+import {useIsMobile} from "../hooks/useIsMobile";
 
 type ContainerList = { value: string, label: string, status: "started" | "stopped", labels: Record<string, string> };
 export const LogsPage = () => {
     const guiApi = useApi();
     const {notification} = App.useApp();
+    const isMobile = useIsMobile();
     const [containers, setContainers] = useState<ContainerList[]>([]);
     const [containerId, setContainerId] = useState<string | undefined>(undefined);
     const [data, setData] = useState<string[]>([])
@@ -104,39 +106,71 @@ export const LogsPage = () => {
             })
         }
     };
+
     const selectedContainer = containers.find((container) => container.value === containerId);
-    return <Row>
-        <Col span={24}>
-            <MowerActions/>
-        </Col>
-        <Col span={24} style={{marginBottom: 20}}>
-            <Select<string> options={containers} value={containerId} style={{marginRight: 10}} onSelect={(value) => {
-                setContainerId(value);
-            }}/>
-            {
-                selectedContainer && selectedContainer.status === "started" && <>
-                    <AsyncButton onAsyncClick={commandContainer("restart")} style={{marginRight: 10}}>Restart</AsyncButton>
-                    <AsyncButton disabled={selectedContainer.labels.app == "gui"}
-                                 onAsyncClick={commandContainer("stop")}>Stop</AsyncButton>
-                </>
-            }
-            {
-                selectedContainer && selectedContainer.status === "stopped" &&
-                <AsyncButton onAsyncClick={commandContainer("start")}>Start</AsyncButton>
-            }
-        </Col>
-        <Col span={24}>
-            <StyledTerminal>
-                <Terminal colorMode={ColorMode.Dark}>
-                    {data.map((line, index) => {
-                        return <TerminalOutput key={index}>
-                            <div dangerouslySetInnerHTML={{__html: ansiHTML(line)}}></div>
-                        </TerminalOutput>
-                    })}
-                </Terminal>
-            </StyledTerminal>
-        </Col>
-    </Row>
+
+    return (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            height: '100%',
+        }}>
+            {/* Controls bar */}
+            <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 8,
+                alignItems: isMobile ? 'stretch' : 'center',
+                background: COLORS.bgCard,
+                borderRadius: 12,
+                padding: 12,
+                flexShrink: 0,
+            }}>
+                <Select<string>
+                    options={containers}
+                    value={containerId}
+                    style={{flex: 1, minWidth: isMobile ? undefined : 200}}
+                    onSelect={(value) => setContainerId(value)}
+                    placeholder="Select container"
+                />
+                <Space size={8} style={{flexShrink: 0}}>
+                    {selectedContainer && selectedContainer.status === "started" && (
+                        <>
+                            <AsyncButton onAsyncClick={commandContainer("restart")} size={isMobile ? "middle" : "small"}>
+                                Restart
+                            </AsyncButton>
+                            <AsyncButton
+                                disabled={selectedContainer.labels.app == "gui"}
+                                onAsyncClick={commandContainer("stop")}
+                                size={isMobile ? "middle" : "small"}
+                            >
+                                Stop
+                            </AsyncButton>
+                        </>
+                    )}
+                    {selectedContainer && selectedContainer.status === "stopped" && (
+                        <AsyncButton onAsyncClick={commandContainer("start")} size={isMobile ? "middle" : "small"}>
+                            Start
+                        </AsyncButton>
+                    )}
+                </Space>
+            </div>
+
+            {/* Terminal */}
+            <div style={{flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: 12}}>
+                <StyledTerminal style={{height: '100%'}}>
+                    <Terminal colorMode={ColorMode.Dark}>
+                        {data.map((line, index) => {
+                            return <TerminalOutput key={index}>
+                                <div dangerouslySetInnerHTML={{__html: ansiHTML(line)}}></div>
+                            </TerminalOutput>
+                        })}
+                    </Terminal>
+                </StyledTerminal>
+            </div>
+        </div>
+    );
 }
 
 export default LogsPage;

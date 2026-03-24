@@ -1,11 +1,17 @@
 export const COLORS = {
   bgBase: '#141414',
   bgCard: '#1f1f1f',
+  bgElevated: '#2a2a2a',
+  bgSubtle: '#1a1a1a',
   primary: '#52c41a',
+  primaryBg: 'rgba(82, 196, 26, 0.08)',
   accent: '#1677ff',
   danger: '#ff4d4f',
+  dangerBg: 'rgba(255, 77, 79, 0.08)',
   warning: '#faad14',
   text: '#e8e8e8',
+  textSecondary: '#8c8c8c',
   muted: '#a0a0a0',
   border: '#303030',
+  borderSubtle: '#252525',
 } as const;

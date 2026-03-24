@@ -8,11 +8,13 @@ import {SettingsComponent} from "../components/SettingsComponent.tsx";
 import AsyncButton from "../components/AsyncButton.tsx";
 import {FlashGPSComponent} from "../components/FlashGPSComponent.tsx";
 import {SettingsConfig} from "../hooks/useSettings.ts";
+import {useIsMobile} from "../hooks/useIsMobile";
 
 const {Step} = Steps;
 
 const SetupWizard: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(0);
+    const isMobile = useIsMobile();
 
     const handleNext = () => {
         setCurrentStep(currentStep + 1);
@@ -80,14 +82,14 @@ const SetupWizard: React.FC = () => {
     ];
 
 
-    return <Row gutter={[16, 32]}>
+    return <Row gutter={[16, isMobile ? 16 : 32]}>
         <Col span={24}>
-            <Typography.Text type="danger">WARNING: This setup wizard will flash your
+            <Typography.Text type="danger" style={{fontSize: isMobile ? 12 : 14}}>WARNING: This setup wizard will flash your
                 motherboard firmware and the GPS configuration. Run at your own risk and be careful with voltage
                 settings if you change them.</Typography.Text>
         </Col>
         <Col span={24}>
-            <Steps current={currentStep}>
+            <Steps current={currentStep} size={isMobile ? "small" : "default"} direction={isMobile ? "vertical" : "horizontal"}>
                 {steps.map((step) => (
                     <Step key={step.title} title={step.title}/>
                 ))}

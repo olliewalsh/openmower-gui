@@ -52,7 +52,7 @@ describe('Root layout', () => {
 
     it('renders page title based on route', () => {
         renderWithRouter('/openmower');
-        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders MowerStatus in header', () => {
@@ -67,15 +67,22 @@ describe('Root layout', () => {
 
     it('renders navigation menu items', () => {
         renderWithRouter('/openmower');
-        expect(screen.getByText('OpenMower')).toBeInTheDocument();
-        expect(screen.getByText('Map')).toBeInTheDocument();
-        expect(screen.getByText('Settings')).toBeInTheDocument();
-        expect(screen.getByText('Schedule')).toBeInTheDocument();
-        expect(screen.getByText('Logs')).toBeInTheDocument();
+        // Nav rail icons have aria-labels (text only visible when expanded)
+        expect(screen.getByLabelText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByLabelText('Map')).toBeInTheDocument();
+        expect(screen.getByLabelText('Settings')).toBeInTheDocument();
+        expect(screen.getByLabelText('Schedule')).toBeInTheDocument();
+        expect(screen.getByLabelText('Logs')).toBeInTheDocument();
     });
 
-    it('renders Mowgli branding', () => {
+    it('renders Mowgli branding when rail expanded', async () => {
+        const user = userEvent.setup();
         renderWithRouter('/openmower');
+        // Branding text is hidden when rail is collapsed
+        expect(screen.queryByText('Mowgli')).not.toBeInTheDocument();
+        // Hover over nav to expand rail and show branding
+        const nav = screen.getByLabelText('Dashboard').closest('nav')!;
+        await user.hover(nav);
         expect(screen.getByText('Mowgli')).toBeInTheDocument();
     });
 

@@ -6,7 +6,7 @@ import centroid from "@turf/centroid";
 import turfArea from "@turf/area";
 import union from "@turf/union";
 import {featureCollection} from "@turf/helpers"
-import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path} from "../types/ros.ts";
 import DrawControl from "../components/DrawControl.tsx";
 import Map, {Layer, Source} from 'react-map-gl/mapbox';
@@ -37,7 +37,7 @@ import {JoystickOverlay} from "./map/components/JoystickOverlay.tsx";
 import {useIsMobile} from "../hooks/useIsMobile.ts";
 
 
-export const MapPage = () => {
+export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
     const {notification} = App.useApp();
     const isMobile = useIsMobile();
     const mowerAction = useMowerAction()
@@ -81,8 +81,38 @@ export const MapPage = () => {
         [features]
     );
 
+    // Display-only features (mower, dock, heading, paths) rendered as separate layers
+    const displayFeatures = useMemo<GeoJSON.FeatureCollection>(() => ({
+        type: "FeatureCollection",
+        features: Object.values(features)
+            .filter(f => !(f instanceof MowingFeatureBase))
+            .map(f => ({
+                type: "Feature" as const,
+                id: f.id,
+                geometry: f.geometry,
+                properties: f.properties,
+            })),
+    }), [features]);
+
     // Extracted hooks
     const {offsetX, offsetY, handleOffsetX, handleOffsetY} = useMapOffset({config, setConfig, notification});
+
+    const _datumLon = parseFloat(settings["OM_DATUM_LONG"] ?? 0)
+    const _datumLat = parseFloat(settings["OM_DATUM_LAT"] ?? 0)
+    const [map_ne, map_sw, datum] = useMemo<[[number, number], [number, number], [number, number, number]]>(() => {
+        if (_datumLon == 0 || _datumLat == 0) {
+            return [[0, 0], [0, 0], [0, 0, 0]]
+        }
+        const datum: [number, number, number] = [0, 0, 0]
+        converter.LLtoUTM(_datumLat, _datumLon, datum)
+        const map_center = (map && map.MapCenterY && map.MapCenterX) ? transpose(offsetX, offsetY, datum, map.MapCenterY, map.MapCenterX) : [_datumLon, _datumLat]
+        const center: [number, number, number] = [0, 0, 0]
+        converter.LLtoUTM(map_center[1], map_center[0], center)
+        const map_sw = transpose(offsetX, offsetY, center, -((map?.MapHeight ?? 10) / 2), -((map?.MapWidth ?? 10) / 2))
+        const map_ne = transpose(offsetX, offsetY, center, ((map?.MapHeight ?? 10) / 2), ((map?.MapWidth ?? 10) / 2))
+        return [map_ne, map_sw, datum]
+    }, [_datumLat, _datumLon, map, offsetX, offsetY])
+
     const {
         hasUnsavedChanges, setHasUnsavedChanges, handleEditMap,
         handleUndo, handleRedo, historyIndex, editHistory,
@@ -376,7 +406,7 @@ export const MapPage = () => {
             console.debug(newFeatures);
         }
         setFeatures(newFeatures)
-    }, [map, path, plan, offsetX, offsetY]);
+    }, [map, path, plan, offsetX, offsetY, datum]);
 
     useEffect(() => {
         const labels = buildLabels(Object.values(features))
@@ -899,22 +929,6 @@ export const MapPage = () => {
         });
     }, []);
 
-    const _datumLon = parseFloat(settings["OM_DATUM_LONG"] ?? 0)
-    const _datumLat = parseFloat(settings["OM_DATUM_LAT"] ?? 0)
-    const [map_ne, map_sw, datum] = useMemo<[[number, number], [number, number], [number, number, number]]>(() => {
-        if (_datumLon == 0 || _datumLat == 0) {
-            return [[0, 0], [0, 0], [0, 0, 0]]
-        }
-        const datum: [number, number, number] = [0, 0, 0]
-        converter.LLtoUTM(_datumLat, _datumLon, datum)
-        const map_center = (map && map.MapCenterY && map.MapCenterX) ? transpose(offsetX, offsetY, datum, map.MapCenterY, map.MapCenterX) : [_datumLon, _datumLat]
-        const center: [number, number, number] = [0, 0, 0]
-        converter.LLtoUTM(map_center[1], map_center[0], center)
-        const map_sw = transpose(offsetX, offsetY, center, -((map?.MapHeight ?? 10) / 2), -((map?.MapWidth ?? 10) / 2))
-        const map_ne = transpose(offsetX, offsetY, center, ((map?.MapHeight ?? 10) / 2), ((map?.MapWidth ?? 10) / 2))
-        return [map_ne, map_sw, datum]
-    }, [_datumLat, _datumLon, map, offsetX, offsetY])
-
     function cancelAreaModal() {
         setAreaModelOpen(false);
     }
@@ -1200,6 +1214,78 @@ export const MapPage = () => {
     if (_datumLon == 0 || _datumLat == 0) {
         return <Spinner/>
     }
+    if (compact) {
+        return (
+            <div style={{width: '100%', height: '100%', position: 'relative'}}>
+                {map_sw?.length && map_ne?.length ? <Map key={mapKey}
+                                                         reuseMaps
+                                                         antialias
+                                                         projection={{
+                                                             name: "globe"
+                                                         }}
+                                                         mapboxAccessToken="pk.eyJ1IjoiY2VkYm9zc25lbyIsImEiOiJjbGxldjB4aDEwOW5vM3BxamkxeWRwb2VoIn0.WOccbQZZyO1qfAgNxnHAnA"
+                                                         initialViewState={{
+                                                             bounds: [{lng: map_sw[0], lat: map_sw[1]}, {lng: map_ne[0], lat: map_ne[1]}],
+                                                         }}
+                                                         style={{width: '100%', height: '100%'}}
+                                                         mapStyle={useSatellite ? "mapbox://styles/mapbox/satellite-streets-v12" : "mapbox://styles/mapbox/dark-v11"}
+                                                         interactive={false}
+                                                         attributionControl={false}
+                >
+                    {tileUri ? <Source type={"raster"} id={"custom-raster"} tiles={[tileUri]} tileSize={256}/> : null}
+                    {tileUri ? <Layer type={"raster"} source={"custom-raster"} id={"custom-layer"}/> : null}
+                    <Source type={"geojson"} id={"labels"} data={labelsCollection}/>
+                    <Layer type={"symbol"} id={"mower"} source={"labels"} layout={{
+                        "text-field": ['get', 'title'],
+                        "text-rotation-alignment": "auto",
+                        "text-allow-overlap": true,
+                        "text-anchor": "top"
+                    }} paint={{
+                        "text-color": "#ffffff",
+                        "text-halo-color": "rgba(0, 0, 0, 0.8)",
+                        "text-halo-width": 1.5,
+                    }}/>
+                    <DrawControl
+                        drawRef={drawRef}
+                        styles={MapStyle}
+                        userProperties={true}
+                        features={drawableFeatures}
+                        position="top-left"
+                        displayControlsDefault={false}
+                        editMode={false}
+                        controls={{}}
+                        defaultMode="simple_select"
+                        onCreate={() => {}}
+                        onUpdate={() => {}}
+                        onCombine={() => {}}
+                        onDelete={() => {}}
+                        onSelectionChange={() => {}}
+                        onOpenDetails={() => {}}
+                    />
+                    <Source type={"geojson"} id={"display-features"} data={displayFeatures}>
+                        <Layer type={"line"} id={"display-lines"} filter={['==', '$type', 'LineString']}
+                            layout={{'line-cap': 'round', 'line-join': 'round'}}
+                            paint={{
+                                'line-color': ['get', 'color'],
+                                'line-width': ['get', 'width'],
+                            }}/>
+                        <Layer type={"circle"} id={"display-points-halo"} filter={['==', '$type', 'Point']}
+                            paint={{
+                                'circle-radius': 8,
+                                'circle-color': '#ffffff',
+                                'circle-opacity': 0.9,
+                            }}/>
+                        <Layer type={"circle"} id={"display-points"} filter={['==', '$type', 'Point']}
+                            paint={{
+                                'circle-radius': 5,
+                                'circle-color': ['get', 'color'],
+                            }}/>
+                    </Source>
+                </Map> : <Spinner/>}
+            </div>
+        );
+    }
+
     return (
         <Row gutter={[16, 16]} align={"top"} style={{height: '100%'}}>
             <NewAreaModal
@@ -1219,7 +1305,7 @@ export const MapPage = () => {
                 onCancel={cancelAreaModal}
             />
 
-            <Col span={24} style={{height: isMobile ? '100%' : '70%', position: 'relative'}}>
+            <Col span={24} style={{height: isMobile ? '100%' : 'calc(100vh - 180px)', position: 'relative'}}>
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
                                                          reuseMaps
                                                          antialias
@@ -1264,6 +1350,26 @@ export const MapPage = () => {
                         onSelectionChange={onSelectionChange}
                         onOpenDetails={onOpenDetails}
                     />
+                    {/* Display-only features: mower, dock, heading, paths */}
+                    <Source type={"geojson"} id={"display-features"} data={displayFeatures}>
+                        <Layer type={"line"} id={"display-lines"} filter={['==', '$type', 'LineString']}
+                            layout={{'line-cap': 'round', 'line-join': 'round'}}
+                            paint={{
+                                'line-color': ['get', 'color'],
+                                'line-width': ['get', 'width'],
+                            }}/>
+                        <Layer type={"circle"} id={"display-points-halo"} filter={['==', '$type', 'Point']}
+                            paint={{
+                                'circle-radius': 8,
+                                'circle-color': '#ffffff',
+                                'circle-opacity': 0.9,
+                            }}/>
+                        <Layer type={"circle"} id={"display-points"} filter={['==', '$type', 'Point']}
+                            paint={{
+                                'circle-radius': 5,
+                                'circle-color': ['get', 'color'],
+                            }}/>
+                    </Source>
                     <Source type={"geojson"} id={"lidar"} data={lidarCollection}>
                         <Layer type={"circle"} id={"lidar-points"} paint={{
                             "circle-radius": 3,

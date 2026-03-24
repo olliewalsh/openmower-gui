@@ -10,18 +10,98 @@ import {useStatus} from "../hooks/useStatus.ts";
 import {usePower} from "../hooks/usePower.ts";
 import {useEmergency} from "../hooks/useEmergency.ts";
 import {useDockingSensor} from "../hooks/useDockingSensor.ts";
+import {COLORS} from "../theme/colors.ts";
 
 const StatusTag = ({label, active, color}: { label: string; active: boolean; color?: string }) => (
     <Tag color={active ? (color ?? "green") : "default"}>{label}</Tag>
 );
 
-export function StatusComponent() {
+export function StatusComponent({compact}: {compact?: boolean}) {
     const status = useStatus();
     const power = usePower();
     const emergency = useEmergency();
     const dockingSensor = useDockingSensor();
 
     const mowerStatusLabel = status.MowerStatus === 255 ? "OK" : "Initializing";
+
+    if (compact) {
+        return (
+            <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                {/* Combined: System Status + Emergency + Docking */}
+                <div style={{
+                    background: COLORS.bgCard,
+                    borderRadius: 12,
+                    padding: 16,
+                }}>
+                    <Space style={{marginBottom: 8}}>
+                        <ApiOutlined style={{color: COLORS.textSecondary}}/>
+                        <span style={{color: COLORS.textSecondary, fontSize: 13, fontWeight: 500}}>System & Safety</span>
+                    </Space>
+                    <Flex wrap gap="small" style={{marginBottom: 8}}>
+                        <StatusTag label={`Mower: ${mowerStatusLabel}`} active={status.MowerStatus === 255}/>
+                        <StatusTag label="RPi Power" active={!!status.RaspberryPiPower}/>
+                        <StatusTag label="Mow Enabled" active={!!status.MowEnabled}/>
+                        <StatusTag label={status.RainDetected ? "Rain" : "No Rain"}
+                                   active={!!status.RainDetected} color="blue"/>
+                    </Flex>
+                    <div style={{borderTop: `1px solid ${COLORS.borderSubtle}`, paddingTop: 8, marginBottom: 8}}>
+                        <Flex wrap gap="small">
+                            <StatusTag label={emergency.ActiveEmergency ? "EMERGENCY" : "Clear"}
+                                       active={!!emergency.ActiveEmergency} color="red"/>
+                            {emergency.Reason ?
+                                <Tag color="red">{emergency.Reason}</Tag> : null}
+                            <StatusTag label={`Dock L: ${dockingSensor.DetectedLeft ?? "-"}`}
+                                       active={(dockingSensor.DetectedLeft ?? 0) > 0} color="cyan"/>
+                            <StatusTag label={`Dock R: ${dockingSensor.DetectedRight ?? "-"}`}
+                                       active={(dockingSensor.DetectedRight ?? 0) > 0} color="cyan"/>
+                        </Flex>
+                    </div>
+                </div>
+
+                {/* Combined: Power + Motor */}
+                <div style={{
+                    background: COLORS.bgCard,
+                    borderRadius: 12,
+                    padding: 16,
+                }}>
+                    <Space style={{marginBottom: 8}}>
+                        <ThunderboltOutlined style={{color: COLORS.textSecondary}}/>
+                        <span style={{color: COLORS.textSecondary, fontSize: 13, fontWeight: 500}}>Power & Motor</span>
+                    </Space>
+                    <Row gutter={[12, 8]}>
+                        <Col span={8}>
+                            <Statistic title="Battery" value={power.VBattery} precision={1} suffix="V"
+                                       valueStyle={{fontSize: 16}}/>
+                        </Col>
+                        <Col span={8}>
+                            <Statistic title="Charge" value={power.VCharge} precision={1} suffix="V"
+                                       valueStyle={{fontSize: 16}}/>
+                        </Col>
+                        <Col span={8}>
+                            <Statistic title="Current" value={power.ChargeCurrent} precision={1} suffix="A"
+                                       valueStyle={{fontSize: 16}}/>
+                        </Col>
+                    </Row>
+                    <div style={{borderTop: `1px solid ${COLORS.borderSubtle}`, paddingTop: 8, marginTop: 8}}>
+                        <Row gutter={[12, 8]}>
+                            <Col span={8}>
+                                <Statistic title="RPM" value={status.MowerMotorRpm} precision={0}
+                                           valueStyle={{fontSize: 16}}/>
+                            </Col>
+                            <Col span={8}>
+                                <Statistic title="Motor" value={status.MowerMotorTemperature} precision={0} suffix="°C"
+                                           valueStyle={{fontSize: 16}}/>
+                            </Col>
+                            <Col span={8}>
+                                <Statistic title="ESC" value={status.MowerEscTemperature} precision={0} suffix="°C"
+                                           valueStyle={{fontSize: 16}}/>
+                            </Col>
+                        </Row>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return <Row gutter={[16, 16]}>
         {/* System Status */}

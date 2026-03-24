@@ -17,6 +17,8 @@ import {StyledTerminal} from "./StyledTerminal.tsx";
 import Terminal, {ColorMode, TerminalOutput} from "react-terminal-ui";
 import {createForm, onFieldValueChange} from "@formily/core";
 import {useApi} from "../hooks/useApi.ts";
+import {useIsMobile} from "../hooks/useIsMobile";
+import {COLORS} from "../theme/colors.ts";
 
 const SchemaField = createSchemaField({
     components: {
@@ -55,6 +57,7 @@ type Config = {
 }
 
 export const FlashBoardComponent = (props: { onNext: () => void }) => {
+    const isMobile = useIsMobile();
     const form = useMemo(() => createForm({
         validateFirst: true,
         effects: (form) => {
@@ -471,7 +474,16 @@ export const FlashBoardComponent = (props: { onNext: () => void }) => {
                     </StyledTerminal>
                 </Modal>
             </Col>
-            <Col span={24} style={{position: "fixed", bottom: 20}}>
+            <Col span={24} style={{
+                position: "fixed",
+                bottom: isMobile ? 56 : 20,
+                left: isMobile ? 0 : undefined,
+                right: isMobile ? 0 : undefined,
+                padding: isMobile ? '8px 12px' : undefined,
+                background: isMobile ? COLORS.bgCard : undefined,
+                borderTop: isMobile ? `1px solid ${COLORS.border}` : undefined,
+                zIndex: 50,
+            }}>
                 <FormButtonGroup>
                     <Submit loading={form.loading} onSubmit={flashFirmware}>Flash Firmware</Submit>
                     <Button onClick={props.onNext}>Skip</Button>
