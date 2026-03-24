@@ -1384,7 +1384,7 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                     </Source>
                 </Map> : <Spinner/>}
                 <JoystickOverlay
-                    visible={highLevelStatus.highLevelStatus.StateName === "AREA_RECORDING"}
+                    visible={highLevelStatus.highLevelStatus.StateName === "AREA_RECORDING" || manualMode != null}
                     onMove={handleJoyMove}
                     onStop={handleJoyStop}
                 />
