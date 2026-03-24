@@ -26,6 +26,10 @@ export default function DrawControl(props: DrawControlProps) {
         onCreate, onUpdate, onCombine, onDelete, onSelectionChange, onOpenDetails,
         ...drawOptions
     } = props;
+    const mapRef = useRef<MapRef | null>(null);
+    const editModeRef = useRef(editMode);
+    editModeRef.current = editMode;
+
     const mp = useControl<MapboxDraw>(
         () => new MapboxDraw({
             ...drawOptions,
@@ -35,6 +39,7 @@ export default function DrawControl(props: DrawControlProps) {
             }
         }),
         ({map}: {map: MapRef}) => {
+            mapRef.current = map;
             map.on('draw.create', onCreate);
             map.on('draw.update', onUpdate);
             map.on('draw.combine', onCombine);
@@ -43,6 +48,7 @@ export default function DrawControl(props: DrawControlProps) {
             map.on('feature.open', onOpenDetails);
         },
         ({map}: {map: MapRef}) => {
+            mapRef.current = null;
             map.off('draw.create', onCreate);
             map.off('draw.update', onUpdate);
             map.off('draw.combine', onCombine);
@@ -81,13 +87,31 @@ export default function DrawControl(props: DrawControlProps) {
         return () => clearTimeout(syncTimerRef.current);
     }, [mp, features]);
     useEffect(() => {
-        if (mp) {
-            // Always start in simple_select — user can draw via the polygon tool button.
-            // Previously this switched to draw_polygon in edit mode, which caused the
-            // first click to start drawing instead of selecting existing features.
-            mp.changeMode('simple_select');
+        if (!mp) return;
+        mp.changeMode('simple_select');
+        if (!editMode) {
+            // Deselect everything so features can't be dragged
+            mp.changeMode('simple_select', { featureIds: [] });
         }
     }, [mp, editMode]);
+
+    // When not in edit mode, intercept selection and immediately deselect
+    // to prevent users from dragging features.
+    useEffect(() => {
+        if (!mp) return;
+        const map = mapRef.current;
+        if (!map) return;
+
+        const blockSelection = () => {
+            if (!editModeRef.current) {
+                mp.changeMode('simple_select', { featureIds: [] });
+            }
+        };
+        map.on('draw.selectionchange', blockSelection);
+        return () => {
+            map.off('draw.selectionchange', blockSelection);
+        };
+    }, [mp]);
     return null;
 }
 

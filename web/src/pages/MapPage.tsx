@@ -1,6 +1,6 @@
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import {useApi} from "../hooks/useApi.ts";
-import {App, Col, Row} from "antd";
+import {App} from "antd";
 import {useWS} from "../hooks/useWS.ts";
 import centroid from "@turf/centroid";
 import turfArea from "@turf/area";
@@ -1287,7 +1287,7 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
     }
 
     return (
-        <Row gutter={[16, 16]} align={"top"} style={{height: '100%'}}>
+        <div style={{height: isMobile ? 'calc(100% + 8px)' : 'calc(100% + 10px)', margin: isMobile ? '-8px -8px 0' : '-10px -24px 0', width: isMobile ? 'calc(100% + 16px)' : 'calc(100% + 48px)'}}>
             <NewAreaModal
                 open={modalOpen}
                 areaType={newAreaType}
@@ -1305,7 +1305,7 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                 onCancel={cancelAreaModal}
             />
 
-            <Col span={24} style={{height: isMobile ? '100%' : 'calc(100vh - 180px)', position: 'relative'}}>
+            <div style={{height: '100%', position: 'relative'}}>
                 {map_sw?.length && map_ne?.length ? <Map key={mapKey}
                                                          reuseMaps
                                                          antialias
@@ -1427,58 +1427,55 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                         onEmergencyOff={mowerAction("emergency", {Emergency: 0})}
                     />
                 )}
-            </Col>
-            {!isMobile && (
-                <Col span={24}>
-                    <MapToolbar
-                        editMap={editMap}
-                        hasUnsavedChanges={hasUnsavedChanges}
-                        manualMode={manualMode}
-                        useSatellite={useSatellite}
-                        historyIndex={historyIndex}
-                        editHistoryLength={editHistory.length}
-                        mowingAreas={mowingAreas}
-                        selectedFeatureCount={selectedFeatureIds.length}
-                        onEditMap={handleEditMap}
-                        onEditSelectedFeature={handleEditSelectedFeature}
-                        onDrawPolygon={handleDrawPolygon}
-                        onTrash={handleTrash}
-                        onCombine={handleCombine}
-                        onSaveMap={handleSaveMap}
-                        onUndo={handleUndo}
-                        onRedo={handleRedo}
-                        onToggleSatellite={() => setUseSatellite(!useSatellite)}
-                        onManualMode={handleManualMode}
-                        onStopManualMode={handleStopManualMode}
-                        onBackupMap={handleBackupMap}
-                        onRestoreMap={handleRestoreMap}
-                        onDownloadGeoJSON={handleDownloadGeoJSON}
-                        onUploadGeoJSON={handleUploadGeoJSON}
-                        onMowArea={(key) => {
-                            const item = mowingAreas.find(item => item.key == key)
-                            return mowerAction("start_in_area", {
-                                area: item?.feat?.properties?.index,
-                            })()
-                        }}
-                    />
-                </Col>
-            )}
-            {!isMobile && (
-                <Col span={24}>
-                    <AreasListPanel areas={areasList}/>
-                </Col>
-            )}
-            {!isMobile && (
-                <Col span={24}>
-                    <MapOffsetPanel
-                        offsetX={offsetX}
-                        offsetY={offsetY}
-                        onChangeX={handleOffsetX}
-                        onChangeY={handleOffsetY}
-                    />
-                </Col>
-            )}
-        </Row>
+                {!isMobile && (
+                    <div style={{position: 'absolute', bottom: 12, left: 16, right: 16, zIndex: 10, background: 'rgba(20, 20, 20, 0.75)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)', padding: '10px 14px'}}>
+                        <MapToolbar
+                            bare
+                            editMap={editMap}
+                            hasUnsavedChanges={hasUnsavedChanges}
+                            manualMode={manualMode}
+                            useSatellite={useSatellite}
+                            historyIndex={historyIndex}
+                            editHistoryLength={editHistory.length}
+                            mowingAreas={mowingAreas}
+                            selectedFeatureCount={selectedFeatureIds.length}
+                            onEditMap={handleEditMap}
+                            onEditSelectedFeature={handleEditSelectedFeature}
+                            onDrawPolygon={handleDrawPolygon}
+                            onTrash={handleTrash}
+                            onCombine={handleCombine}
+                            onSaveMap={handleSaveMap}
+                            onUndo={handleUndo}
+                            onRedo={handleRedo}
+                            onToggleSatellite={() => setUseSatellite(!useSatellite)}
+                            onManualMode={handleManualMode}
+                            onStopManualMode={handleStopManualMode}
+                            onBackupMap={handleBackupMap}
+                            onRestoreMap={handleRestoreMap}
+                            onDownloadGeoJSON={handleDownloadGeoJSON}
+                            onUploadGeoJSON={handleUploadGeoJSON}
+                            onMowArea={(key) => {
+                                const item = mowingAreas.find(item => item.key == key)
+                                return mowerAction("start_in_area", {
+                                    area: item?.feat?.properties?.index,
+                                })()
+                            }}
+                        />
+                    </div>
+                )}
+                {!isMobile && (
+                    <div style={{position: 'absolute', top: 12, right: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 280, maxHeight: 'calc(100% - 90px)', overflowY: 'auto', background: 'rgba(20, 20, 20, 0.75)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)', padding: 8}}>
+                        <AreasListPanel areas={areasList}/>
+                        <MapOffsetPanel
+                            offsetX={offsetX}
+                            offsetY={offsetY}
+                            onChangeX={handleOffsetX}
+                            onChangeY={handleOffsetY}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 

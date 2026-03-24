@@ -52,6 +52,7 @@ interface MapToolbarProps {
     onDrawPolygon?: () => void;
     onTrash?: () => void;
     onCombine?: () => void;
+    bare?: boolean;
 }
 
 export const MapToolbar = ({
@@ -61,7 +62,7 @@ export const MapToolbar = ({
     onManualMode, onStopManualMode,
     onBackupMap, onRestoreMap, onDownloadGeoJSON, onUploadGeoJSON,
     onMowArea, selectedFeatureCount = 0, onEditSelectedFeature,
-    onDrawPolygon, onTrash, onCombine,
+    onDrawPolygon, onTrash, onCombine, bare,
 }: MapToolbarProps) => {
     const dataMenuItems: MenuProps["items"] = [
         {
@@ -111,7 +112,7 @@ export const MapToolbar = ({
     };
 
     return (
-        <MowerActions>
+        <MowerActions bare={bare}>
             <Space wrap size="small">
                 {/* Edit group */}
                 {!editMap && (

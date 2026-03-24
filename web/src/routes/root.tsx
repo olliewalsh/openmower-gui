@@ -78,9 +78,10 @@ export default function Root() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0 12px',
+                    paddingTop: 'env(safe-area-inset-top, 0px)',
                     background: COLORS.bgCard,
                     borderBottom: `1px solid ${COLORS.border}`,
-                    height: 48,
+                    minHeight: 48,
                     flexShrink: 0,
                     zIndex: 100,
                 }}>

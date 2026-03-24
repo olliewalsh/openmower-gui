@@ -68,18 +68,20 @@ interface MapToolbarMobileProps {
 const toolbarStyle: React.CSSProperties = {
     position: "absolute",
     bottom: 12,
-    left: 8,
-    right: 8,
+    left: 12,
+    right: 12,
     zIndex: 10,
     display: "flex",
     gap: 6,
     justifyContent: "center",
     alignItems: "center",
-    background: "rgba(0,0,0,0.6)",
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
-    borderRadius: 10,
-    padding: "8px 10px",
+    background: "rgba(20, 20, 20, 0.75)",
+    backdropFilter: "blur(16px) saturate(180%)",
+    WebkitBackdropFilter: "blur(16px) saturate(180%)",
+    borderRadius: 12,
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+    padding: "8px 12px",
 };
 
 export const MapToolbarMobile = ({
