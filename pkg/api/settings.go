@@ -46,6 +46,41 @@ func extractDefaults(schema map[string]any, defaults map[string]any) {
 				if thenBlock, ok := condMap["then"].(map[string]any); ok {
 					extractDefaults(thenBlock, defaults)
 				}
+				if elseBlock, ok := condMap["else"].(map[string]any); ok {
+					extractDefaults(elseBlock, defaults)
+				}
+			}
+		}
+	}
+}
+
+// extractAllKeys collects every leaf property key defined in the schema,
+// regardless of whether it has a default value. This is used to distinguish
+// known schema properties from truly custom environment variables.
+func extractAllKeys(schema map[string]any, keys map[string]bool) {
+	if props, ok := schema["properties"].(map[string]any); ok {
+		for key, prop := range props {
+			if propMap, ok := prop.(map[string]any); ok {
+				// Only mark leaf properties (those with a type that is not "object")
+				// or properties with x-environment-variable as known keys.
+				propType, _ := propMap["type"].(string)
+				_, hasEnvVar := propMap["x-environment-variable"]
+				if hasEnvVar || (propType != "" && propType != "object") {
+					keys[key] = true
+				}
+				extractAllKeys(propMap, keys)
+			}
+		}
+	}
+	if allOf, ok := schema["allOf"].([]any); ok {
+		for _, cond := range allOf {
+			if condMap, ok := cond.(map[string]any); ok {
+				if thenBlock, ok := condMap["then"].(map[string]any); ok {
+					extractAllKeys(thenBlock, keys)
+				}
+				if elseBlock, ok := condMap["else"].(map[string]any); ok {
+					extractAllKeys(elseBlock, keys)
+				}
 			}
 		}
 	}
@@ -128,8 +163,10 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 		// Merge defaults from schema
 		schema, err := getSchema(dbProvider)
 		defaults := map[string]any{}
+		knownKeys := map[string]bool{}
 		if err == nil {
 			extractDefaults(schema, defaults)
+			extractAllKeys(schema, knownKeys)
 			for key, value := range defaults {
 				if _, exists := settings[key]; !exists {
 					settings[key] = value
@@ -140,8 +177,7 @@ func PostSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes 
 		// Identify which existing settings are custom (not in schema)
 		customEnvVars := map[string]string{}
 		for key, value := range settings {
-			_, isKnown := defaults[key]
-			if !isKnown {
+			if !knownKeys[key] {
 				if key != "custom_environment" {
 					// We store them as strings, just in case
 					customEnvVars[key] = fmt.Sprintf("%v", value)
@@ -242,19 +278,18 @@ func GetSettings(r *gin.RouterGroup, dbProvider types.IDBProvider) gin.IRoutes {
 			return
 		}
 		schema, _ := getSchema(dbProvider)
-		defaults := map[string]any{}
+		knownKeys := map[string]bool{}
 		if schema != nil {
-			extractDefaults(schema, defaults)
+			extractAllKeys(schema, knownKeys)
 		}
 
 		finalSettings := map[string]any{}
 		customEnv := map[string]string{}
 		for k, v := range settings {
-			_, isKnown := defaults[k]
-			if !isKnown && k != "custom_environment" {
-				customEnv[k] = v
-			} else {
+			if knownKeys[k] || k == "custom_environment" {
 				finalSettings[k] = v
+			} else {
+				customEnv[k] = v
 			}
 		}
 

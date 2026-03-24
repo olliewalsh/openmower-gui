@@ -12,8 +12,17 @@ type FieldRenderProps = {
     onChange: (name: string, value: any) => void;
 };
 
+/** Turn an env-var key like "OM_MOWING_ANGLE_OFFSET" into "Mowing Angle Offset" */
+const humanizeKey = (key: string): string => {
+    const stripped = key.replace(/^OM_/, "");
+    return stripped
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ");
+};
+
 const SchemaField: React.FC<FieldRenderProps> = ({ name, prop, value, onChange }) => {
-    const title = prop.title || name;
+    const title = prop.title || humanizeKey(name);
     const description = prop.description;
 
     if (prop.enum && prop.enum.length > 0) {
