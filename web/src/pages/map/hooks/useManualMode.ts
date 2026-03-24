@@ -6,7 +6,7 @@ const JOY_SEND_INTERVAL_MS = 100;
 
 interface UseManualModeOptions {
     mowerAction: (action: string, params: Record<string, unknown>) => () => Promise<void>;
-    joyStream: { sendJsonMessage: (msg: unknown) => void };
+    joyStream: { sendJsonMessage: (msg: unknown) => void; start: (uri: string) => void };
 }
 
 export function useManualMode({mowerAction, joyStream}: UseManualModeOptions) {
@@ -29,7 +29,12 @@ export function useManualMode({mowerAction, joyStream}: UseManualModeOptions) {
     }, []);
 
     const handleManualMode = async () => {
+        // Start the joy WebSocket immediately so it's ready when the user moves the joystick.
+        // Don't wait for the AREA_RECORDING state to propagate back via highLevelStatus.
+        joyStream.start("/api/openmower/publish/joy");
         await mowerAction("high_level_control", {Command: 3})();
+        // Enable mowing blade immediately, then keep it alive every 10s
+        await mowerAction("mow_enabled", {MowEnabled: 1, MowDirection: 0})();
         setManualMode(setInterval(() => {
             (async () => {
                 await mowerAction("mow_enabled", {MowEnabled: 1, MowDirection: 0})();

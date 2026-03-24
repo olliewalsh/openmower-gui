@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Button, Dropdown, Space} from "antd";
+import {App, Button, Dropdown, Space} from "antd";
 import type {MenuProps} from "antd";
 import {
     UndoOutlined,
@@ -117,9 +117,20 @@ export const MapToolbarMobile = ({
     onAreaRecording, onMowNextArea, onContinueOrPause,
     onBladeForward, onBladeBackward, onBladeOff,
 }: MapToolbarMobileProps) => {
+    const {notification} = App.useApp();
     const [mowLoading, setMowLoading] = useState(false);
 
     const isIdle = stateName === "IDLE";
+
+    const safeCall = (fn?: () => Promise<void>) => {
+        fn?.().catch((e: Error) => {
+            console.error(e);
+            notification.error({
+                message: "Action failed",
+                description: e.message,
+            });
+        });
+    };
 
     const dataMenuItems: MenuProps["items"] = [
         {key: "satellite", icon: <GlobalOutlined />, label: useSatellite ? "Dark map" : "Satellite"},
@@ -149,14 +160,14 @@ export const MapToolbarMobile = ({
     const handleMoreClick: MenuProps["onClick"] = ({key}: MenuInfo) => {
         switch (key) {
             case "satellite": onToggleSatellite(); break;
-            case "areaRecording": onAreaRecording?.(); break;
-            case "mowNext": onMowNextArea?.(); break;
-            case "continueOrPause": onContinueOrPause?.(); break;
-            case "manual": onManualMode(); break;
-            case "stopManual": onStopManualMode(); break;
-            case "bladeForward": onBladeForward?.(); break;
-            case "bladeBackward": onBladeBackward?.(); break;
-            case "bladeOff": onBladeOff?.(); break;
+            case "areaRecording": safeCall(onAreaRecording); break;
+            case "mowNext": safeCall(onMowNextArea); break;
+            case "continueOrPause": safeCall(onContinueOrPause); break;
+            case "manual": safeCall(() => onManualMode()); break;
+            case "stopManual": safeCall(() => onStopManualMode()); break;
+            case "bladeForward": safeCall(onBladeForward); break;
+            case "bladeBackward": safeCall(onBladeBackward); break;
+            case "bladeOff": safeCall(onBladeOff); break;
             case "backup": onBackupMap(); break;
             case "restore": onRestoreMap(); break;
             case "download": onDownloadGeoJSON(); break;

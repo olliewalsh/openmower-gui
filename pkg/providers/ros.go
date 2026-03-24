@@ -306,6 +306,10 @@ func (p *RosProvider) CallService(ctx context.Context, srvName string, srv any, 
 		Name: srvName,
 		Srv:  srv,
 	})
+	if err != nil {
+		return err
+	}
+	defer serviceClient.Close()
 	err = serviceClient.CallContext(ctx, req, res)
 	if err != nil {
 		return err

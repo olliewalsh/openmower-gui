@@ -5,10 +5,12 @@ import {useManualMode} from './useManualMode.ts';
 describe('useManualMode', () => {
     let mowerAction: (action: string, params: Record<string, unknown>) => () => Promise<void>;
     let sendJsonMessage: (msg: unknown) => void;
+    let startStream: (uri: string) => void;
 
     beforeEach(() => {
         mowerAction = vi.fn(() => vi.fn().mockResolvedValue(undefined));
         sendJsonMessage = vi.fn();
+        startStream = vi.fn();
         vi.useFakeTimers();
     });
 
@@ -20,7 +22,7 @@ describe('useManualMode', () => {
         return renderHook(() =>
             useManualMode({
                 mowerAction,
-                joyStream: {sendJsonMessage},
+                joyStream: {sendJsonMessage, start: startStream},
             })
         );
     }
@@ -35,7 +37,9 @@ describe('useManualMode', () => {
         await act(async () => {
             await result.current.handleManualMode();
         });
+        expect(startStream).toHaveBeenCalledWith('/api/openmower/publish/joy');
         expect(mowerAction).toHaveBeenCalledWith('high_level_control', {Command: 3});
+        expect(mowerAction).toHaveBeenCalledWith('mow_enabled', {MowEnabled: 1, MowDirection: 0});
         expect(result.current.manualMode).toBeDefined();
     });
 
