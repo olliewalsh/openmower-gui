@@ -242,7 +242,7 @@ export default function Root() {
                         <Typography.Text strong style={{
                             fontSize: 18, color: COLORS.text, whiteSpace: 'nowrap',
                         }}>
-                            Mowgli
+                            OpenMower
                         </Typography.Text>
                     )}
                 </div>
