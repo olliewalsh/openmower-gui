@@ -30,6 +30,22 @@ export default function DrawControl(props: DrawControlProps) {
     const editModeRef = useRef(editMode);
     editModeRef.current = editMode;
 
+    // Use refs for all callbacks so event listeners always call the latest version.
+    // useControl only binds listeners once during setup — without refs, stale closures
+    // would be called when the callbacks change (e.g. when splitTargetId updates).
+    const onCreateRef = useRef(onCreate);
+    onCreateRef.current = onCreate;
+    const onUpdateRef = useRef(onUpdate);
+    onUpdateRef.current = onUpdate;
+    const onCombineRef = useRef(onCombine);
+    onCombineRef.current = onCombine;
+    const onDeleteRef = useRef(onDelete);
+    onDeleteRef.current = onDelete;
+    const onSelectionChangeRef = useRef(onSelectionChange);
+    onSelectionChangeRef.current = onSelectionChange;
+    const onOpenDetailsRef = useRef(onOpenDetails);
+    onOpenDetailsRef.current = onOpenDetails;
+
     const mp = useControl<MapboxDraw>(
         () => new MapboxDraw({
             ...drawOptions,
@@ -40,21 +56,16 @@ export default function DrawControl(props: DrawControlProps) {
         }),
         ({map}: {map: MapRef}) => {
             rawMapRef.current = map.getMap();
-            map.on('draw.create', onCreate);
-            map.on('draw.update', onUpdate);
-            map.on('draw.combine', onCombine);
-            map.on('draw.delete', onDelete);
-            map.on('draw.selectionchange', onSelectionChange);
-            map.on('feature.open', onOpenDetails);
+            map.on('draw.create', (e: any) => onCreateRef.current(e));
+            map.on('draw.update', (e: any) => onUpdateRef.current(e));
+            map.on('draw.combine', (e: any) => onCombineRef.current(e));
+            map.on('draw.delete', (e: any) => onDeleteRef.current(e));
+            map.on('draw.selectionchange', (e: any) => onSelectionChangeRef.current(e));
+            map.on('feature.open', (e: any) => onOpenDetailsRef.current(e));
         },
-        ({map}: {map: MapRef}) => {
+        ({map: _map}: {map: MapRef}) => {
             rawMapRef.current = null;
-            map.off('draw.create', onCreate);
-            map.off('draw.update', onUpdate);
-            map.off('draw.combine', onCombine);
-            map.off('draw.delete', onDelete);
-            map.off('draw.selectionchange', onSelectionChange);
-            map.off('feature.open', onOpenDetails);
+            void _map; // cleanup only runs on unmount
         }
         ,
         {

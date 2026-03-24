@@ -19,6 +19,8 @@ import {
     ScissorOutlined,
     ControlOutlined,
     StopOutlined,
+    SplitCellsOutlined,
+    MinusSquareOutlined,
     PlayCircleOutlined,
     HomeOutlined,
     WarningOutlined,
@@ -57,6 +59,8 @@ interface MapToolbarMobileProps {
     onDrawPolygon?: () => void;
     onTrash?: () => void;
     onCombine?: () => void;
+    onSubtract?: () => void;
+    onSplit?: () => void;
     stateName?: string;
     emergency?: boolean;
     onStart?: () => Promise<void>;
@@ -91,7 +95,7 @@ export const MapToolbarMobile = ({
     onManualMode, onStopManualMode,
     onBackupMap, onRestoreMap, onDownloadGeoJSON, onUploadGeoJSON,
     onMowArea, selectedFeatureCount = 0, onEditSelectedFeature,
-    onDrawPolygon, onTrash, onCombine,
+    onDrawPolygon, onTrash, onCombine, onSubtract, onSplit,
     stateName, emergency,
     onStart, onHome, onEmergencyOn, onEmergencyOff,
 }: MapToolbarMobileProps) => {
@@ -133,7 +137,9 @@ export const MapToolbarMobile = ({
 
     const editMenuItems: MenuProps["items"] = [
         {key: "editProps", icon: <FormOutlined />, label: "Edit Properties", disabled: selectedFeatureCount !== 1},
-        {key: "combine", icon: <MergeCellsOutlined />, label: "Combine", disabled: selectedFeatureCount === 0},
+        {key: "combine", icon: <MergeCellsOutlined />, label: "Combine", disabled: selectedFeatureCount < 2},
+        {key: "subtract", icon: <MinusSquareOutlined />, label: "Subtract", disabled: selectedFeatureCount !== 2},
+        {key: "split", icon: <SplitCellsOutlined />, label: "Split (draw line)", disabled: selectedFeatureCount !== 1},
         {type: "divider"},
         ...dataMenuItems,
     ];
@@ -142,6 +148,8 @@ export const MapToolbarMobile = ({
         switch (key) {
             case "editProps": onEditSelectedFeature?.(); break;
             case "combine": onCombine?.(); break;
+            case "subtract": onSubtract?.(); break;
+            case "split": onSplit?.(); break;
             default: handleMoreClick({key} as MenuInfo); break;
         }
     };
@@ -190,6 +198,27 @@ export const MapToolbarMobile = ({
                         disabled={selectedFeatureCount === 0}
                         onClick={onTrash}
                         aria-label="Delete"
+                    />
+                </Space.Compact>
+
+                <Space.Compact size="middle">
+                    <Button
+                        icon={<MergeCellsOutlined />}
+                        disabled={selectedFeatureCount < 2}
+                        onClick={onCombine}
+                        aria-label="Combine"
+                    />
+                    <Button
+                        icon={<MinusSquareOutlined />}
+                        disabled={selectedFeatureCount !== 2}
+                        onClick={onSubtract}
+                        aria-label="Subtract"
+                    />
+                    <Button
+                        icon={<SplitCellsOutlined />}
+                        disabled={selectedFeatureCount !== 1}
+                        onClick={onSplit}
+                        aria-label="Split"
                     />
                 </Space.Compact>
 

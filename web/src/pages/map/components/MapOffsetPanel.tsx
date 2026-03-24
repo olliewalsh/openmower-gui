@@ -1,4 +1,4 @@
-import {Col, Collapse, InputNumber, Row} from "antd";
+import {InputNumber} from "antd";
 
 interface MapOffsetPanelProps {
     offsetX: number;
@@ -8,20 +8,26 @@ interface MapOffsetPanelProps {
 }
 
 export const MapOffsetPanel = ({offsetX, offsetY, onChangeX, onChangeY}: MapOffsetPanelProps) => (
-    <Collapse size="small" items={[{
-        key: 'offsets',
-        label: `Map Offset (X: ${offsetX}, Y: ${offsetY})`,
-        children: (
-            <Row gutter={16}>
-                <Col span={12}>
-                    <label>Offset X</label>
-                    <InputNumber value={offsetX} onChange={(v) => onChangeX(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
-                </Col>
-                <Col span={12}>
-                    <label>Offset Y</label>
-                    <InputNumber value={offsetY} onChange={(v) => onChangeY(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
-                </Col>
-            </Row>
-        ),
-    }]}/>
+    <div>
+        <div style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.5)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.05em',
+            marginBottom: 6,
+        }}>
+            Map Offset
+        </div>
+        <div style={{display: 'flex', gap: 8}}>
+            <div style={{flex: 1}}>
+                <label style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2}}>X</label>
+                <InputNumber size="small" value={offsetX} onChange={(v) => onChangeX(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
+            </div>
+            <div style={{flex: 1}}>
+                <label style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2}}>Y</label>
+                <InputNumber size="small" value={offsetY} onChange={(v) => onChangeY(v ?? 0)} min={-30} max={30} step={0.01} style={{width: '100%'}}/>
+            </div>
+        </div>
+    </div>
 );

@@ -5,6 +5,7 @@ import {useWS} from "../hooks/useWS.ts";
 import centroid from "@turf/centroid";
 import turfArea from "@turf/area";
 import union from "@turf/union";
+import difference from "@turf/difference";
 import {featureCollection} from "@turf/helpers"
 import React, {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AbsolutePose, LaserScan, Map as MapType, MapArea, Marker, MarkerArray, Path} from "../types/ros.ts";
@@ -33,6 +34,7 @@ import {AreasListPanel} from "./map/components/AreasListPanel.tsx";
 import {MapOffsetPanel} from "./map/components/MapOffsetPanel.tsx";
 import {MapToolbar} from "./map/components/MapToolbar.tsx";
 import {MapToolbarMobile} from "./map/components/MapToolbarMobile.tsx";
+import {MapEditorToolbar} from "./map/components/MapEditorToolbar.tsx";
 import {JoystickOverlay} from "./map/components/JoystickOverlay.tsx";
 import {useIsMobile} from "../hooks/useIsMobile.ts";
 
@@ -52,6 +54,7 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
     const [currentFeature, setCurrentFeature] = useState<Feature | undefined>(undefined)
     const [curMowingAreaFeature, setCurMowingAreaFeature] = useState<MowingAreaEdit>(new MowingAreaEdit())
     const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([])
+    const [splitTargetId, setSplitTargetId] = useState<string | null>(null)
 
     const {settings} = useSettings()
     const [labelsCollection, setLabelsCollection] = useState<FeatureCollection>({
@@ -71,7 +74,7 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
     const [useSatellite, setUseSatellite] = useState(true)
     const robotPoseRef = useRef<{ x: number; y: number; heading: number } | null>(null)
     const mapInstanceRef = useRef<MapboxMap | null>(null)
-    const drawRef = useRef<import('@mapbox/mapbox-gl-draw').default | null>(null)
+    const drawRef = useRef<import('@mapbox/mapbox-gl-draw').default | null>(null);
 
     // Only include editable polygon features for DrawControl — exclude mower,
     // paths, and other display-only features so that frequent pose updates don't
@@ -353,6 +356,10 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
         return param.flatMap((feature) => {
 
             if (!(feature instanceof MowingAreaFeature)) {
+                return []
+            }
+            // Skip features with empty or invalid geometry
+            if (!feature.geometry?.coordinates?.[0]?.length) {
                 return []
             }
             const centroidPt = centroid(feature);
@@ -656,15 +663,228 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
         setModalOpen(false)
     }
 
+    // Segment-segment intersection (returns point or null)
+    const segSegIntersect = (
+        a1: Position, a2: Position, b1: Position, b2: Position
+    ): Position | null => {
+        const d1x = a2[0] - a1[0], d1y = a2[1] - a1[1];
+        const d2x = b2[0] - b1[0], d2y = b2[1] - b1[1];
+        const cross = d1x * d2y - d1y * d2x;
+        if (Math.abs(cross) < 1e-15) return null; // parallel
+        const t = ((b1[0] - a1[0]) * d2y - (b1[1] - a1[1]) * d2x) / cross;
+        const u = ((b1[0] - a1[0]) * d1y - (b1[1] - a1[1]) * d1x) / cross;
+        if (t < 0 || t > 1 || u < 0 || u > 1) return null; // outside segments
+        return [a1[0] + t * d1x, a1[1] + t * d1y];
+    };
 
+    // Get cutter line points between two intersection points (for multi-segment cuts)
+    const getCutterBetween = (
+        coords: number[][], p0: Position, p1: Position
+    ): Position[] => {
+        // For a simple 2-point line, there are no intermediate points
+        // For multi-segment lines, find points between the two intersections
+        const result: Position[] = [];
+        let inside = false;
+        const dist = (a: Position, b: Position) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+        for (const c of coords) {
+            const d0 = dist(c, p0), d1 = dist(c, p1);
+            if (d0 < 1e-12 || d1 < 1e-12) {
+                if (inside) { inside = false; break; }
+                inside = true;
+                continue;
+            }
+            if (inside) result.push(c);
+        }
+        return result;
+    };
+
+    const performSplit = useCallback((lineFeature: Feature, targetId: string) => {
+        const targetFeat = features[targetId];
+        if (!targetFeat || !(targetFeat instanceof MowingFeatureBase) || targetFeat.geometry.type !== 'Polygon') {
+            notification.error({message: 'Split target is not a valid polygon'});
+            return;
+        }
+
+        // Algorithm from openmower-app: polygonize approach
+        // 1. Convert polygon boundary to a line
+        // 2. Find intersections between polygon boundary and cutting line
+        // 3. Insert intersection points into both lines
+        // 4. Polygonize the combined line network
+        // 5. Filter resulting polygons to those inside the original
+        const polygon: Feature<Polygon> = {
+            type: 'Feature',
+            properties: {},
+            geometry: targetFeat.geometry as Polygon,
+        };
+        // Extend the cutting line far beyond the polygon so it fully crosses through
+        const rawCutCoords = (lineFeature.geometry as GeoJSON.LineString).coordinates;
+        const cutCoords = rawCutCoords.map(c => [Number(c[0]), Number(c[1])]);
+        const polyCoords = (targetFeat.geometry as Polygon).coordinates[0];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const c of polyCoords) {
+            if (c[0] < minX) minX = c[0]; if (c[1] < minY) minY = c[1];
+            if (c[0] > maxX) maxX = c[0]; if (c[1] > maxY) maxY = c[1];
+        }
+        const pad = Math.max(maxX - minX, maxY - minY) * 3;
+        // Extend first point backward
+        const c0 = cutCoords[0], c1 = cutCoords[1];
+        const dxS = c1[0] - c0[0], dyS = c1[1] - c0[1];
+        const lenS = Math.sqrt(dxS * dxS + dyS * dyS);
+        if (lenS > 0) {
+            cutCoords[0] = [c0[0] - dxS / lenS * pad, c0[1] - dyS / lenS * pad];
+        }
+        // Extend last point forward
+        const cL = cutCoords[cutCoords.length - 1], cP = cutCoords[cutCoords.length - 2];
+        const dxE = cL[0] - cP[0], dyE = cL[1] - cP[1];
+        const lenE = Math.sqrt(dxE * dxE + dyE * dyE);
+        if (lenE > 0) {
+            cutCoords[cutCoords.length - 1] = [cL[0] + dxE / lenE * pad, cL[1] + dyE / lenE * pad];
+        }
+
+
+        try {
+            // Get the polygon ring (without closing duplicate)
+            const ring = (polygon.geometry as Polygon).coordinates[0];
+            const ringOpen = ring.slice(0, -1); // remove closing point
+
+            // Find where the cutter line intersects each edge of the polygon
+            const hits: {index: number; point: Position}[] = [];
+            for (let i = 0; i < ringOpen.length; i++) {
+                const a = ringOpen[i];
+                const b = ringOpen[(i + 1) % ringOpen.length];
+                const pt = segSegIntersect(a, b, cutCoords[0], cutCoords[cutCoords.length - 1]);
+                if (pt) hits.push({index: i, point: pt});
+            }
+
+            if (hits.length < 2) {
+                notification.error({message: 'Line must cross the area at least twice to split it'});
+                return;
+            }
+
+            // Sort hits by index so we walk the ring in order
+            hits.sort((a, b) => a.index - b.index);
+            const h0 = hits[0];
+            const h1 = hits[1];
+
+            // Build two polygons by walking the ring in two halves connected by the cut
+            // Polygon A: from h0.point along ring to h1.point, then back via cut
+            const polyACoords: Position[] = [h0.point];
+            for (let i = h0.index + 1; i <= h1.index; i++) {
+                polyACoords.push(ringOpen[i]);
+            }
+            polyACoords.push(h1.point);
+            // Add cutter line points between the two intersections (if multi-segment)
+            const cutBetween = getCutterBetween(cutCoords, h0.point, h1.point);
+            polyACoords.push(...[...cutBetween].reverse());
+            polyACoords.push(h0.point); // close
+
+            // Polygon B: from h1.point along ring (wrapping) to h0.point, then back via cut
+            const polyBCoords: Position[] = [h1.point];
+            for (let i = h1.index + 1; i < ringOpen.length + h0.index + 1; i++) {
+                polyBCoords.push(ringOpen[i % ringOpen.length]);
+            }
+            polyBCoords.push(h0.point);
+            polyBCoords.push(...cutBetween);
+            polyBCoords.push(h1.point); // close
+
+            const geomA: GeoJSON.Polygon = {type: 'Polygon', coordinates: [polyACoords]};
+            const geomB: GeoJSON.Polygon = {type: 'Polygon', coordinates: [polyBCoords]};
+
+            setFeatures(curr => {
+                const next = {...curr};
+                const origFeat = next[targetId];
+                if (origFeat && origFeat instanceof MowingFeatureBase) {
+                    origFeat.setGeometry(geomA);
+                }
+
+                const areaType = targetFeat.properties.feature_type;
+                let type: string;
+                let constructFn: (id: string) => MowingFeatureBase | null;
+                switch (areaType) {
+                    case 'workarea':
+                        type = 'area';
+                        constructFn = (id) => new MowingAreaFeature(id, mowingAreas.length + 1);
+                        break;
+                    case 'navigation':
+                        type = 'navigation';
+                        constructFn = (id) => new NavigationFeature(id);
+                        break;
+                    case 'obstacle': {
+                        type = 'area';
+                        const parentArea = Object.values<MowingFeature>(next).find(
+                            (f): f is MowingAreaFeature => f instanceof MowingAreaFeature
+                        );
+                        if (!parentArea) {
+                            notification.error({message: 'No parent area found for obstacle split'});
+                            return curr;
+                        }
+                        constructFn = (id) => new ObstacleFeature(id, parentArea);
+                        break;
+                    }
+                    default:
+                        notification.error({message: `Unknown type ${areaType}`});
+                        return curr;
+                }
+                const component = areaType === 'obstacle' ? 'obstacle' : 'area';
+                const newId = getNewId(next, type, null, component);
+                const newFeat = constructFn(newId);
+                if (newFeat) {
+                    newFeat.setGeometry(geomB);
+                    next[newId] = newFeat;
+                    sortFeatures(next);
+                }
+
+                return next;
+            });
+
+            if (drawRef.current) {
+                const drawFeat = drawRef.current.get(targetId);
+                if (drawFeat) {
+                    drawFeat.geometry = geomA;
+                    drawRef.current.add(drawFeat);
+                }
+            }
+            notification.success({message: 'Area split into 2 pieces'});
+        } catch (err) {
+            notification.error({message: `Split failed: ${err instanceof Error ? err.message : String(err)}`});
+        }
+    }, [features, mowingAreas.length, notification]);
+
+    const splitInProgressRef = useRef(false);
     const onCreate = useCallback((e: any) => {
+        console.log('[onCreate] features:', e.features.length, 'splitTargetId:', splitTargetId, 'types:', e.features.map((f: any) => f.geometry?.type));
         for (const f of e.features) {
+            // If we're in split mode and a line was drawn, perform the split
+            if (splitTargetId && f.geometry?.type === 'LineString') {
+                // Guard against double-invocation (React StrictMode)
+                if (splitInProgressRef.current) {
+                    console.log('[onCreate] BLOCKED duplicate split');
+                    return;
+                }
+                splitInProgressRef.current = true;
+                console.log('[onCreate] performing split');
+                performSplit(f, splitTargetId);
+                // Remove the temporary line from draw
+                if (drawRef.current) {
+                    drawRef.current.delete(f.id);
+                }
+                setSplitTargetId(null);
+                setTimeout(() => { splitInProgressRef.current = false; }, 100);
+                return;
+            }
+            // Only treat Polygon features as new areas; skip lines or other types
+            if (f.geometry?.type !== 'Polygon') {
+                console.log('[onCreate] skipping non-polygon:', f.geometry?.type, f.id);
+                if (drawRef.current) drawRef.current.delete(f.id);
+                continue;
+            }
+            console.log('[onCreate] opening new area modal for:', f.geometry?.type, f.id);
             setCurrentFeature(f)
             setNewAreaName('')
             setNewAreaType('workarea')
             setModalOpen(true)
         }
-    }, []);
+    }, [splitTargetId, performSplit]);
 
     const onUpdate = useCallback((e: any) => {
         setFeatures(currFeatures => {
@@ -918,6 +1138,67 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
     const handleCombine = useCallback(() => {
         drawRef.current?.combineFeatures();
     }, []);
+
+    const handleAreaSelect = useCallback((id: string) => {
+        if (!editMap || !drawRef.current) return;
+        drawRef.current.changeMode('simple_select', {featureIds: [id]});
+        setSelectedFeatureIds([id]);
+    }, [editMap]);
+
+    const handleSubtract = useCallback(() => {
+        if (selectedFeatureIds.length !== 2) {
+            notification.info({message: 'Select exactly 2 areas to subtract'});
+            return;
+        }
+        const [keepId, cutId] = selectedFeatureIds;
+        const keepFeat = features[keepId];
+        const cutFeat = features[cutId];
+        if (!keepFeat || !cutFeat || !(keepFeat instanceof MowingFeatureBase) || !(cutFeat instanceof MowingFeatureBase)) {
+            notification.error({message: 'Both selections must be polygon areas'});
+            return;
+        }
+
+        const result = difference(featureCollection([keepFeat as any, cutFeat as any]));
+        if (!result || result.geometry.type !== 'Polygon') {
+            notification.error({message: 'Subtract failed — areas may not overlap, or result is not a simple polygon'});
+            return;
+        }
+
+        setFeatures(curr => {
+            const next = {...curr};
+            const feat = next[keepId];
+            if (feat && feat instanceof MowingFeatureBase) {
+                feat.setGeometry(result.geometry as any);
+            }
+            return next;
+        });
+        // Update draw control
+        if (drawRef.current) {
+            const drawFeat = drawRef.current.get(keepId);
+            if (drawFeat) {
+                drawFeat.geometry = result.geometry;
+                drawRef.current.add(drawFeat);
+            }
+            drawRef.current.changeMode('simple_select', {featureIds: [keepId]});
+        }
+        notification.success({message: 'Area subtracted'});
+    }, [selectedFeatureIds, features, notification]);
+
+    const handleSplit = useCallback(() => {
+        if (selectedFeatureIds.length !== 1) {
+            notification.info({message: 'Select exactly 1 area to split'});
+            return;
+        }
+        const targetId = selectedFeatureIds[0];
+        const feat = features[targetId];
+        if (!feat || !(feat instanceof MowingFeatureBase)) {
+            notification.error({message: 'Selection must be a polygon area'});
+            return;
+        }
+        setSplitTargetId(targetId);
+        notification.info({message: 'Draw a line across the area to split it'});
+        drawRef.current?.changeMode('draw_line_string');
+    }, [selectedFeatureIds, features, notification]);
 
     const onDelete = useCallback((e: any) => {
         setFeatures(currFeatures => {
@@ -1403,6 +1684,8 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                         onDrawPolygon={handleDrawPolygon}
                         onTrash={handleTrash}
                         onCombine={handleCombine}
+                        onSubtract={handleSubtract}
+                        onSplit={handleSplit}
                         onSaveMap={handleSaveMap}
                         onUndo={handleUndo}
                         onRedo={handleRedo}
@@ -1427,7 +1710,27 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                         onEmergencyOff={mowerAction("emergency", {Emergency: 0})}
                     />
                 )}
-                {!isMobile && (
+                {/* Desktop: Edit mode — left vertical toolbar */}
+                {!isMobile && editMap && (
+                    <MapEditorToolbar
+                        hasUnsavedChanges={hasUnsavedChanges}
+                        historyIndex={historyIndex}
+                        editHistoryLength={editHistory.length}
+                        selectedFeatureCount={selectedFeatureIds.length}
+                        onSaveMap={handleSaveMap}
+                        onCancel={handleEditMap}
+                        onUndo={handleUndo}
+                        onRedo={handleRedo}
+                        onDrawPolygon={handleDrawPolygon}
+                        onTrash={handleTrash}
+                        onCombine={handleCombine}
+                        onSubtract={handleSubtract}
+                        onSplit={handleSplit}
+                        onEditSelectedFeature={handleEditSelectedFeature}
+                    />
+                )}
+                {/* Desktop: View mode — bottom glass toolbar */}
+                {!isMobile && !editMap && (
                     <div style={{position: 'absolute', bottom: 12, left: 16, right: 16, zIndex: 10, background: 'rgba(20, 20, 20, 0.75)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)', padding: '10px 14px'}}>
                         <MapToolbar
                             bare
@@ -1463,15 +1766,22 @@ export const MapPage: React.FC<{compact?: boolean}> = ({compact = false}) => {
                         />
                     </div>
                 )}
+                {/* Desktop: Right panel — areas list + offset */}
                 {!isMobile && (
-                    <div style={{position: 'absolute', top: 12, right: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 280, maxHeight: 'calc(100% - 90px)', overflowY: 'auto', background: 'rgba(20, 20, 20, 0.75)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)', padding: 8}}>
-                        <AreasListPanel areas={areasList}/>
-                        <MapOffsetPanel
-                            offsetX={offsetX}
-                            offsetY={offsetY}
-                            onChangeX={handleOffsetX}
-                            onChangeY={handleOffsetY}
+                    <div style={{position: 'absolute', top: 12, right: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 0, width: 240, maxHeight: 'calc(100% - 32px)', background: 'rgba(20, 20, 20, 0.75)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)', overflow: 'hidden'}}>
+                        <AreasListPanel
+                            areas={areasList}
+                            onAreaClick={editMap ? handleAreaSelect : undefined}
+                            selectedId={editMap ? selectedFeatureIds[0] : undefined}
                         />
+                        <div style={{borderTop: '1px solid rgba(255,255,255,0.06)', padding: 8}}>
+                            <MapOffsetPanel
+                                offsetX={offsetX}
+                                offsetY={offsetY}
+                                onChangeX={handleOffsetX}
+                                onChangeY={handleOffsetY}
+                            />
+                        </div>
                     </div>
                 )}
             </div>

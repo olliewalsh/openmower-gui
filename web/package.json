@@ -20,6 +20,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@turf/area": "^7.3.4",
     "@turf/centroid": "^7.3.4",
+    "@turf/difference": "^7.3.4",
     "@turf/union": "^7.3.4",
     "antd": "^5.29.3",
     "localforage": "^1.10.0",

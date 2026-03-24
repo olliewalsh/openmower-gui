@@ -16,30 +16,24 @@ describe('AreasListPanel', () => {
         expect(screen.getByText('Areas (3)')).toBeInTheDocument();
     });
 
-    it('renders all areas after expanding', async () => {
-        const user = userEvent.setup();
+    it('renders all areas immediately (no expand needed)', () => {
         render(<AreasListPanel areas={areas} />);
-        // Expand the collapse panel
-        await user.click(screen.getByText('Areas (3)'));
         expect(screen.getByText('Front Yard')).toBeInTheDocument();
         expect(screen.getByText('Nav Zone')).toBeInTheDocument();
         expect(screen.getByText('Tree')).toBeInTheDocument();
     });
 
-    it('shows area sizes after expanding', async () => {
-        const user = userEvent.setup();
+    it('shows area sizes', () => {
         render(<AreasListPanel areas={areas} />);
-        await user.click(screen.getByText('Areas (3)'));
-        expect(screen.getByText(/45 m²/)).toBeInTheDocument();
-        expect(screen.getByText(/12 m²/)).toBeInTheDocument();
-        expect(screen.getByText(/3 m²/)).toBeInTheDocument();
+        expect(screen.getByText('45 m²')).toBeInTheDocument();
+        expect(screen.getByText('12 m²')).toBeInTheDocument();
+        expect(screen.getByText('3 m²')).toBeInTheDocument();
     });
 
     it('calls onAreaClick when area is clicked', async () => {
         const user = userEvent.setup();
         const onAreaClick = vi.fn();
         render(<AreasListPanel areas={areas} onAreaClick={onAreaClick} />);
-        await user.click(screen.getByText('Areas (3)'));
         await user.click(screen.getByText('Front Yard'));
         expect(onAreaClick).toHaveBeenCalledWith('area-0-area-0');
     });
@@ -49,19 +43,8 @@ describe('AreasListPanel', () => {
         expect(container.innerHTML).toBe('');
     });
 
-    it('shows mowing order badge for work areas', async () => {
-        const user = userEvent.setup();
+    it('shows mowing order badge for work areas', () => {
         render(<AreasListPanel areas={areas} />);
-        await user.click(screen.getByText('Areas (3)'));
         expect(screen.getByText('1')).toBeInTheDocument();
-    });
-
-    it('shows type labels for each area', async () => {
-        const user = userEvent.setup();
-        render(<AreasListPanel areas={areas} />);
-        await user.click(screen.getByText('Areas (3)'));
-        expect(screen.getByText(/Work Area/)).toBeInTheDocument();
-        expect(screen.getByText(/Navigation/)).toBeInTheDocument();
-        expect(screen.getByText(/Obstacle/)).toBeInTheDocument();
     });
 });
