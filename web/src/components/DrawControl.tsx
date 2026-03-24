@@ -3,14 +3,14 @@ import type {ControlPosition} from 'mapbox-gl';
 import {useControl} from 'react-map-gl/mapbox';
 import type {MapRef} from 'react-map-gl/mapbox';
 import {useEffect, useRef} from "react";
-import type {MutableRefObject} from "react";
+import type {RefObject} from "react";
 import DirectSelectWithBoxMode from '../modes/DirectSelectWithBoxMode';
 
 type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
     position?: ControlPosition;
     features?: GeoJSON.Feature[];
     editMode?: boolean;
-    drawRef?: MutableRefObject<MapboxDraw | null>;
+    drawRef?: RefObject<MapboxDraw | null>;
 
     onCreate: (evt: { features: GeoJSON.Feature[] }) => void;
     onUpdate: (evt: { features: GeoJSON.Feature[]; action: string }) => void;
@@ -26,7 +26,7 @@ export default function DrawControl(props: DrawControlProps) {
         onCreate, onUpdate, onCombine, onDelete, onSelectionChange, onOpenDetails,
         ...drawOptions
     } = props;
-    const mapRef = useRef<MapRef | null>(null);
+    const rawMapRef = useRef<ReturnType<MapRef['getMap']> | null>(null);
     const editModeRef = useRef(editMode);
     editModeRef.current = editMode;
 
@@ -39,7 +39,7 @@ export default function DrawControl(props: DrawControlProps) {
             }
         }),
         ({map}: {map: MapRef}) => {
-            mapRef.current = map;
+            rawMapRef.current = map.getMap();
             map.on('draw.create', onCreate);
             map.on('draw.update', onUpdate);
             map.on('draw.combine', onCombine);
@@ -48,7 +48,7 @@ export default function DrawControl(props: DrawControlProps) {
             map.on('feature.open', onOpenDetails);
         },
         ({map}: {map: MapRef}) => {
-            mapRef.current = null;
+            rawMapRef.current = null;
             map.off('draw.create', onCreate);
             map.off('draw.update', onUpdate);
             map.off('draw.combine', onCombine);
@@ -99,17 +99,20 @@ export default function DrawControl(props: DrawControlProps) {
     // to prevent users from dragging features.
     useEffect(() => {
         if (!mp) return;
-        const map = mapRef.current;
-        if (!map) return;
+        const rawMap = rawMapRef.current;
+        if (!rawMap) return;
 
         const blockSelection = () => {
             if (!editModeRef.current) {
-                mp.changeMode('simple_select', { featureIds: [] });
+                // Use setTimeout to avoid re-entrant mode changes during event dispatch
+                setTimeout(() => {
+                    mp.changeMode('simple_select', { featureIds: [] });
+                }, 0);
             }
         };
-        map.on('draw.selectionchange', blockSelection);
+        rawMap.on('draw.selectionchange', blockSelection);
         return () => {
-            map.off('draw.selectionchange', blockSelection);
+            rawMap.off('draw.selectionchange', blockSelection);
         };
     }, [mp]);
     return null;

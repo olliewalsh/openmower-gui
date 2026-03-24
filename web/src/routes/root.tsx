@@ -66,9 +66,7 @@ export default function Root() {
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                height: '100dvh',
-                minHeight: '100dvh',
-                maxHeight: '100dvh',
+                height: '100%',
                 background: COLORS.bgBase,
                 overflow: 'hidden',
             }}>
@@ -209,7 +207,7 @@ export default function Root() {
 
     // Desktop layout — custom icon rail
     return (
-        <div style={{display: 'flex', height: '100vh', minHeight: '100vh', maxHeight: '100vh', overflow: 'hidden'}}>
+        <div style={{display: 'flex', height: '100%', minHeight: '100%', maxHeight: '100%', overflow: 'hidden'}}>
             <nav
                 onMouseEnter={() => setRailExpanded(true)}
                 onMouseLeave={() => setRailExpanded(false)}
