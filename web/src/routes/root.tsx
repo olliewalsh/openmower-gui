@@ -13,6 +13,8 @@ import {
 import {useCallback, useEffect, useState} from "react";
 import {MowerStatus} from "../components/MowerStatus.tsx";
 import {useIsMobile} from "../hooks/useIsMobile";
+import {useIOSInstallPrompt} from "../hooks/useIOSInstallPrompt";
+import {IOSInstallBanner} from "../components/IOSInstallBanner.tsx";
 import {COLORS} from "../theme/colors.ts";
 
 const navItems = [
@@ -46,6 +48,7 @@ export default function Root() {
     const isMobile = useIsMobile();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [railExpanded, setRailExpanded] = useState(false);
+    const {showPrompt: showInstallPrompt, dismiss: dismissInstallPrompt} = useIOSInstallPrompt();
 
     useEffect(() => {
         if (route.length === 1 && route[0].pathname === "/") {
@@ -201,6 +204,7 @@ export default function Root() {
                         );
                     })}
                 </nav>
+                {showInstallPrompt && <IOSInstallBanner onDismiss={dismissInstallPrompt}/>}
             </div>
         );
     }
