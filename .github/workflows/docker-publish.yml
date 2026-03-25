@@ -10,7 +10,7 @@ on:
   #  - cron:  '30,0 * * * *'
   workflow_dispatch:
   push:
-    branches: [ "master", "v2" ]
+    branches: [ "master", "v2", "v2_branch" ]
   pull_request:
     branches:
       - 'master'
@@ -35,9 +35,9 @@ jobs:
         arch: [ linux/arm64 , linux/amd64 ]
         include:
           - arch: linux/arm64
-            builder: ${{ vars.CUSTOM_RUNNER_ARM64 || 'buildjet-4vcpu-ubuntu-2204-arm' }}
+            builder: ubuntu-24.04-arm
           - arch: linux/amd64
-            builder: ${{ vars.CUSTOM_RUNNER_AMD64 || 'buildjet-4vcpu-ubuntu-2204' }}
+            builder: ubuntu-24.04
     name: Build - ${{matrix.arch}}
     runs-on: ${{matrix.builder}}
     permissions:

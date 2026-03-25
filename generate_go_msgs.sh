@@ -3,7 +3,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Clone the repository https://github.com/ClemensElflein/open_mower_ros in a temporary directory
 OM_DIR=/tmp/open_mower_ros
 DYN_DIR=/tmp/dynamic_reconfigure
-git clone https://github.com/ClemensElflein/open_mower_ros $OM_DIR
+git clone -b v2 https://github.com/ClemensElflein/open_mower_ros $OM_DIR
 git clone https://github.com/ros/dynamic_reconfigure $DYN_DIR
 cd $OM_DIR && git submodule update --init --recursive
 cd $SCRIPT_DIR
